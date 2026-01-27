@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from app.api.routes import router as api_router
 from app.core.config import settings
+from app.api import audit # Added for audit router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -8,6 +10,11 @@ app = FastAPI(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"]) # Added audit router
+
+@app.get("/dashboard", response_class=FileResponse) # Added dashboard route
+async def get_dashboard():
+    return FileResponse("dashboard.html")
 
 @app.get("/health")
 def health_check():
