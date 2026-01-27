@@ -99,12 +99,31 @@
 
 <body>
     <div class="container">
-        <h1>🛡️ AI Guardrails Enterprise Dashboard</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h1>🛡️ AI Guardrails Enterprise Dashboard</h1>
+            <div style="display:flex; gap:10px;">
+                <select id="timeFilter" onchange="updateFilter()"
+                    style="padding: 8px; border-radius: 6px; background: #1e293b; color: white; border: 1px solid #475569;">
+                    <option value="1">Last 24 Hours</option>
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="-1">All Time</option>
+                </select>
+                <button onclick="exportCSV()"
+                    style="padding: 8px 16px; border-radius: 6px; background: #3b82f6; color: white; border: none; cursor: pointer; font-weight: bold;">
+                    Download Report ⬇️
+                </button>
+            </div>
+        </div>
 
-        <div class="grid">
+        <div class="grid" style="grid-template-columns: repeat(4, 1fr);">
             <div class="card">
                 <h2>Violations by Category</h2>
                 <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="card">
+                <h2>Severity Breakdown</h2>
+                <canvas id="severityChart"></canvas>
             </div>
             <div class="card">
                 <h2>Total Scans vs Violations</h2>
@@ -136,10 +155,16 @@
     </div>
 
     <script>
-        async function fetchStats() {
+        let currentData = null;
+        let catChart = null;
+        let sevChart = null;
+        let scanChart = null;
+
+        async function fetchStats(days = 30) {
             try {
-                const response = await fetch('/api/v1/audit/stats');
+                const response = await fetch(`/api/v1/audit/stats?days=${days}`);
                 const data = await response.json();
+                currentData = data;
                 renderDashboard(data);
             } catch (error) {
                 console.error("Error fetching stats:", error);
@@ -147,9 +172,19 @@
             }
         }
 
+        function updateFilter() {
+            const days = document.getElementById('timeFilter').value;
+            fetchStats(days);
+        }
+
         function renderDashboard(data) {
+            // Destroy old charts if exist
+            if (catChart) catChart.destroy();
+            if (sevChart) sevChart.destroy();
+            if (scanChart) scanChart.destroy();
+
             // Render Category Chart
-            new Chart(document.getElementById('categoryChart'), {
+            catChart = new Chart(document.getElementById('categoryChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(data.categories),
@@ -161,8 +196,21 @@
                 }
             });
 
+            // Render Severity Chart
+            sevChart = new Chart(document.getElementById('severityChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(data.severities),
+                    datasets: [{
+                        data: Object.values(data.severities),
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'], // Red, Orange, Blue
+                        borderWidth: 0
+                    }]
+                }
+            });
+
             // Render Scan Chart
-            new Chart(document.getElementById('scanChart'), {
+            scanChart = new Chart(document.getElementById('scanChart'), {
                 type: 'bar',
                 data: {
                     labels: ['Total Scans', 'Violations Found'],
@@ -175,8 +223,9 @@
                 options: { plugins: { legend: { display: false } } }
             });
 
-            // Render Risky Files (Example logic if backend provides it, or empty if not)
+            // Render Risky Files
             const list = document.getElementById('riskyFilesList');
+            list.innerHTML = "";
             if (data.riskyFiles && Object.keys(data.riskyFiles).length > 0) {
                 Object.entries(data.riskyFiles).forEach(([name, count]) => {
                     const li = document.createElement('li');
@@ -189,12 +238,10 @@
                 list.innerHTML = "<li>No data yet.</li>";
             }
 
-            // Render Table (Recent violations not yet in stats API, would need expansion)
-            // For now, let's keep the table empty or add specific logic later.
             // Render Table
             const tbody = document.querySelector('#violationsTable tbody');
             if (data.recent && data.recent.length > 0) {
-                tbody.innerHTML = ""; // Clear placeholder
+                tbody.innerHTML = "";
                 data.recent.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -207,8 +254,28 @@
                     tbody.appendChild(tr);
                 });
             } else {
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#64748b;'>No violations found recently.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#64748b;'>No violations found in this period.</td></tr>";
             }
+        }
+
+        function exportCSV() {
+            if (!currentData || !currentData.recent) return;
+
+            const rows = [
+                ["Timestamp", "File", "Policy ID", "Category", "Severity"],
+                ...currentData.recent.map(r => [r.time, r.file, r.id, r.cat, r.sev])
+            ];
+
+            let csvContent = "data:text/csv;charset=utf-8,"
+                + rows.map(e => e.join(",")).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "compliance_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // Init
