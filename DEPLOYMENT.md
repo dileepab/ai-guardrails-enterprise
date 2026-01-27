@@ -69,11 +69,17 @@ We have provided a `docker-compose.yml` file in the root directory.
     docker-compose up -d --build
     ```
 
-3.  **Expose to Public**:
-    You need to expose port **3000** (GitHub App) to the internet so GitHub can send webhooks.
-    *   Use a reverse proxy (Nginx).
-    *   OR use a cloud load balancer.
-    *   Your URL will be `https://your-server-ip.com`.
+3.  **Expose to Public (Using ngrok)**:
+    Since your app is running locally on port 3000, GitHub cannot reach it directly. You need a tunnel.
+    
+    1.  Install [ngrok](https://ngrok.com/download).
+    2.  Run:
+        ```bash
+        ngrok http 3000
+        ```
+    3.  Copy the `https` URL provided (e.g., `https://random-id.ngrok-free.app`).
+    4.  **Your Webhook URL**: Append `/api/github/webhooks`
+        *   Example: `https://random-id.ngrok-free.app/api/github/webhooks`
 
 ---
 
