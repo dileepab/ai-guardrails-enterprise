@@ -1,0 +1,21 @@
+rules:
+  - id: "PCI-001"
+    pattern: "\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14})\\b"
+    message: "Potential Visa/MasterCard number detected. Never log or hardcode credit card numbers (PCI-DSS)."
+    severity: "BLOCKING"
+    category: "SECURITY"
+    owasp_category: "A04:2021-Insecure Design"
+    cwe_id: "CWE-312"
+
+  - id: "PCI-002"
+    pattern: "(?i)(cvv|cvc|cv2|cid)\\s*[:=]\\s*[0-9]{3,4}"
+    message: "Potential CVV/CVC code detected. Storage of CVV is strictly prohibited."
+    severity: "BLOCKING"
+    category: "SECURITY"
+    owasp_category: "A01:2021-Broken Access Control"
+
+  - id: "FIN-001"
+    pattern: "(?i)account_number\\s*=\\s*['\\\"][0-9]{10,}['\\\"]"
+    message: "Hardcoded account number detected."
+    severity: "WARNING"
+    category: "SECURITY"
