@@ -35,10 +35,6 @@ export = (app: Probot, { getRouter }: any) => {
     const proxyOptions = {
         target: targetBase,
         changeOrigin: true,
-        pathRewrite: {
-            '^/dashboard': '/dashboard',
-            '^/api/v1/audit': '/api/v1/audit'
-        },
         logger: console
     };
 
