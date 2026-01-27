@@ -243,6 +243,21 @@
             if (sevChart) sevChart.destroy();
             if (scanChart) scanChart.destroy();
 
+            // Common Chart Options
+            const commonOptions = {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e2e8f0', // Light slate text
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                maintainAspectRatio: false
+            };
+
             // Render Category Chart
             catChart = new Chart(document.getElementById('categoryChart'), {
                 type: 'doughnut',
@@ -253,7 +268,8 @@
                         backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#22c55e', '#8b5cf6'],
                         borderWidth: 0
                     }]
-                }
+                },
+                options: commonOptions
             });
 
             // Render Severity Chart
@@ -263,10 +279,11 @@
                     labels: Object.keys(data.severities),
                     datasets: [{
                         data: Object.values(data.severities),
-                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'], // Red, Orange, Blue
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
                         borderWidth: 0
                     }]
-                }
+                },
+                options: commonOptions
             });
 
             // Render Scan Chart
