@@ -36,8 +36,7 @@ RUN npm run build
 # Expose configured port (Railway will override PORT, we just need to let it)
 # EXPOSE 3000 - Removed to avoid confusing Railway routing
 
-ENV HOST=0.0.0.0
-ENV BACKEND_URL=http://localhost:8123/api/v1
+ENV BACKEND_URL=http://localhost:8000/api/v1
 
 # Start Supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
