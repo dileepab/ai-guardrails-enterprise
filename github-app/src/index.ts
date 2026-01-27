@@ -22,8 +22,10 @@ export = (app: Probot, { getRouter }: any) => {
     const router = getRouter("/");
 
     const { createProxyMiddleware } = require('http-proxy-middleware');
-    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
-    // Strips trailing slash if present
+    // On Railway BACKEND_URL includes /api/v1, but we need the base root for the dashboard.
+    // So we strip '/api/v1' suffix effectively.
+    let backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    backendUrl = backendUrl.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
 
     // 1. Dashboard Proxy
     // Mounted on /dashboard. Express strips '/dashboard', so req.url becomes '/'.
