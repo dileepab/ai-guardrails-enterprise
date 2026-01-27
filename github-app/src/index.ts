@@ -18,26 +18,19 @@ export = (app: Probot, { getRouter }: any) => {
 
     // Proxy Dashboard & Audit API to Python Backend
     // In Probot v12+, getRouter is passed in the second argument options object
-    const router = getRouter("/dashboard");
-    const auditRouter = getRouter("/api/v1/audit");
-
-    // We need to use 'http-proxy-middleware' manually if Probot doesn't expose full express app easily,
-    // BUT Probot's getRouter() allows standard express handlers.
+    // We mount on the root ("/") so that the paths (/dashboard, /api/v1/audit) are NOT stripped by Express.
+    // createProxyMiddleware will only match the paths in the filter list.
+    const router = (app as any).getRouter("/");
 
     const { createProxyMiddleware } = require('http-proxy-middleware');
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8123/api/v1';
-    // Remove /api/v1 suffix for the base target if needed, but our BACKEND_URL includes it.
-    // Let's assume BACKEND_URL = http://localhost:8123/api/v1
-    // We want /dashboard -> http://localhost:8123/dashboard
-
-    const targetBase = backendUrl.replace('/api/v1', ''); // http://localhost:8123
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+    // Ensure backendUrl doesn't have a path suffix if we want 1:1 mapping
 
     const proxyOptions = {
-        target: targetBase,
+        target: backendUrl,
         changeOrigin: true,
         logger: console
     };
 
-    router.use(createProxyMiddleware(proxyOptions));
-    auditRouter.use(createProxyMiddleware(proxyOptions));
+    router.use(createProxyMiddleware(['/dashboard', '/api/v1/audit'], proxyOptions));
 };
