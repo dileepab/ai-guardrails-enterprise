@@ -7,7 +7,43 @@ This guide explains how to deploy the **AI Powered Enterprise Guardrails** solut
 - Docker (if deploying to a VPS/VM).
 
 ---
+---
 
+## 🛑 Step 0: Setting Up Version Control (First Time Only)
+
+Before deploying, you must ensure your code is safely stored in a Git repository (like GitHub).
+
+### 1. Initialize Git (If not already done)
+Open your terminal in the project root:
+```bash
+# Initialize git
+git init
+
+# We have provided a .gitignore file to exclude secrets (.env) and dependencies.
+# Verify it exists:
+ls -a .gitignore
+```
+
+### 2. Commit Your Code
+```bash
+git add .
+git commit -m "Initial commit for AI Guardrails"
+```
+
+### 3. Push to a New GitHub Repository
+1.  Go to [github.com/new](https://github.com/new).
+2.  Name your repository (e.g., `ai-guardrails-enterprise`).
+3.  **Do not** initialize with README or .gitignore (you already have them).
+4.  Click **Create repository**.
+5.  Copy the commands under "…or push an existing repository from the command line":
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/ai-guardrails-enterprise.git
+git branch -M main
+git push -u origin main
+```
+
+---
 ## Architecture Recap
 You need to deploy two services:
 1.  **Backend (Python/FastAPI)**: The heavy lifter. Runs scans and calls the LLM.
@@ -19,45 +55,25 @@ You need to deploy two services:
 
 We have provided a `docker-compose.yml` file in the root directory.
 
-1.  **Ensure Environment Variables are Set**:
-    Make sure you have your `.env` files created effectively in the subdirectories:
-    *   `backend/.env`: Contains `GEMINI_API_KEY`.
-    *   `github-app/.env`: Contains `APP_ID`, `WEBHOOK_SECRET`, `PRIVATE_KEY`.
-    *(The `docker-compose.yml` is configured to read these files directly).*
-
-2.  **Run with Docker Compose**:
-    **Crucial**: You must run this command from the **project root directory** (where `docker-compose.yml` is located), NOT inside `github-app` or `backend`.
-
-    ```bash
-    # Go to root
-    cd .. 
-    
-    # Run Docker Compose (Note: use 'docker compose' for newer Docker versions)
-    docker compose up -d --build
+1.  **Set Environment Variables**:
+    Create a `.env` file in the root (where `docker-compose.yml` is) with all your secrets:
+    ```env
+    GEMINI_API_KEY=your_gemini_key
+    APP_ID=12345
+    WEBHOOK_SECRET=development
+    PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----...-----END RSA PRIVATE KEY-----"
     ```
 
-3.  **Expose to Public (The "Webhook URL")**:
-    Your GitHub App container is listening on port `3000` on your server/machine. You need a public HTTPS URL to point GitHub to.
+2.  **Run with Docker Compose**:
+    ```bash
+    docker-compose up -d --build
+    ```
 
-    #### Option A: Cloudflare Tunnel (Recommended for Security)
-    Cloudflare Tunnel creates a secure link without opening firewall ports.
-    1.  Install `cloudflared` on your server.
-    2.  Run: `cloudflared tunnel --url http://localhost:3000`
-    3.  Copy the generated URL (e.g., `https://random-name.trycloudflare.com`).
-    4.  Use this as your Webhook URL in GitHub.
-
-    #### Option B: Nginx Reverse Proxy (Standard for VPS)
-    If you have a domain and Nginx installed:
-    1.  Configure Nginx to proxy traffic from `your-domain.com` to `localhost:3000`.
-    2.  Secure it with Certbot (Let's Encrypt).
-    3.  Use `https://your-domain.com/api/github/webhooks` in GitHub.
-
-    #### Option C: ngrok (For Quick Testing)
-    If you just want to test the Docker container quickly:
-    1.  **Sign up** at [ngrok.com](https://ngrok.com/signup) (it's free).
-    2.  Get your **Authtoken** from the dashboard.
-    3.  Run: `ngrok config add-authtoken <YOUR_TOKEN>`
-    4.  Run: `ngrok http 3000`
+3.  **Expose to Public**:
+    You need to expose port **3000** (GitHub App) to the internet so GitHub can send webhooks.
+    *   Use a reverse proxy (Nginx).
+    *   OR use a cloud load balancer.
+    *   Your URL will be `https://your-server-ip.com`.
 
 ---
 
@@ -92,7 +108,57 @@ Render is great because it handles HTTPS and build steps automatically.
 8.  **Deploy**.
     *   Copy *this* service's URL (e.g., `https://ai-guardrails-app.onrender.com`).
 
+
 ---
+
+## 🐋 Option 3: Unified Single Service (Best for Costs on Render/Railway)
+
+You can run both the Backend and GitHub App in a **single Docker container** (one service = lower cost). We have provided a unified `Dockerfile` in the root directory for this.
+
+### Steps for Render.com
+
+1.  **Create New Web Service**.
+2.  Connect your repository.
+3.  **Runtime**: `Docker`.
+4.  **Root Directory**: `.` (Leave default).
+5.  **Environment Variables**:
+    *   `GEMINI_API_KEY`: Your Gemini Key.
+    *   `OPENAI_API_KEY`: Your OpenAI Key (Optional).
+    *   `LLM_PROVIDER`: `gemini` or `openai`.
+    *   `APP_ID`: From GitHub App.
+    *   `WEBHOOK_SECRET`: From GitHub App.
+    *   `PRIVATE_KEY`: Your .pem file content (use `\n` for newlines if pasting).
+    *   `BACKEND_URL`: `http://localhost:8000/api/v1` (Default, no need to change).
+    *   `PORT`: `3000` (Default).
+6.  **Deploy**.
+    *   Render will build the Docker image, processing both Python and Node.js setups.
+    *   It will start `supervisord`, which runs both your services.
+7.  **Webhook Setup**:
+    *   Use the Service URL provided by Render (e.g., `https://ai-guardrails.onrender.com`) for your GitHub App Webhook URL: `https://ai-guardrails.onrender.com/api/github/webhooks`.
+
+### Steps for Railway.app
+
+1.  **New Project** -> **Deploy from GitHub repo**.
+2.  Select your `ai-guardrails-enterprise` repository.
+3.  **Variables**: Go to the **Variables** tab and add:
+    *   `GEMINI_API_KEY`: Your Gemini Key.
+    *   `OPENAI_API_KEY`: Your OpenAI Key (Optional).
+    *   `LLM_PROVIDER`: `gemini` or `openai`.
+    *   `APP_ID`: From GitHub App.
+    *   `WEBHOOK_SECRET`: From GitHub App.
+    *   `PRIVATE_KEY`: Your .pem file content.
+        *   **Note**: Railway handles multi-line variables well. Just paste the private key as is.
+    *   `BACKEND_URL`: `http://localhost:8000/api/v1`
+4.  **Settings** -> **Networking**:
+    *   Railway usually auto-detects port `3000` from the Dockerfile `EXPOSE`.
+    *   Generate a **Public Domain** (e.g., `ai-guardrails-production.up.railway.app`).
+5.  **Webhook Setup**:
+    *   Use the Public Domain + `/api/github/webhooks` for your GitHub App Webhook URL.
+    *   Example: `https://ai-guardrails-production.up.railway.app/api/github/webhooks`
+
+
+---
+
 
 ## 🔗 Final Step: Connect GitHub to Real Deployment
 
@@ -100,10 +166,9 @@ Once you have your **Deployed App URL** (e.g., `https://ai-guardrails-app.onrend
 
 1.  Go to **GitHub Developer Settings -> GitHub Apps -> Your App**.
 2.  Find **Webhook URL**.
-3.  **Replace** the `smee.io` URL with your new deployed URL (from Cloudflare, Nginx, or **ngrok**).
+3.  **Replace** the `smee.io` URL with your new deployed URL.
     *   **Append**: `/api/github/webhooks`
-    *   Example (Cloud): `https://ai-guardrails-app.onrender.com/api/github/webhooks`
-    *   Example (ngrok): `https://abcd-123.ngrok-free.app/api/github/webhooks`
+    *   Example: `https://ai-guardrails-app.onrender.com/api/github/webhooks`
 4.  **Save Changes**.
 
 **Done!** Your app is now live. You can close your local terminal, and GitHub will send events directly to your cloud deployment.
