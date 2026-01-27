@@ -154,7 +154,8 @@ You can run both the Backend and GitHub App in a **single Docker container** (on
     *   Generate a **Public Domain** (e.g., `ai-guardrails-production.up.railway.app`).
 5.  **Webhook Setup**:
     *   Use the Public Domain + `/api/github/webhooks` for your GitHub App Webhook URL.
-    *   Example: `https://ai-guardrails-production.up.railway.app/api/github/webhooks`
+    *   Use the Public Domain + `/api/github/webhooks` for your GitHub App Webhook URL.
+    *   **Final Verified URL**: `https://ai-guardrails-enterprise-production.up.railway.app/api/github/webhooks`
 
 
 ---
