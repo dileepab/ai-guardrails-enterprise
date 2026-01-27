@@ -33,10 +33,9 @@ WORKDIR /app/github-app
 RUN npm run build
 
 # Expose ports (Render only accepts one, usually 3000 for the app)
-EXPOSE 3000
+# Expose configured port (Railway will override PORT, we just need to let it)
+# EXPOSE 3000 - Removed to avoid confusing Railway routing
 
-# Set Default Env Vars (can be overridden)
-ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV BACKEND_URL=http://localhost:8123/api/v1
 
