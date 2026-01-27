@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/logs:/app/logs
+
+  github-app:
+    build: ./github-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./github-app/.env
+    environment:
+      # Override BACKEND_URL to use the internal docker network name
+      - BACKEND_URL=http://backend:8000/api/v1
+    depends_on:
+      - backend
