@@ -1,5 +1,7 @@
 # AI Powered Enterprise Guardrails for GitHub Copilot
 
+**Repository URL**: [https://github.com/dileepab/ai-guardrails-enterprise](https://github.com/dileepab/ai-guardrails-enterprise)
+
 ## Overview
 This solution provides an enterprise-grade guardrails system for GitHub Copilot and general development workflows. It integrates deeply with GitHub via a Probot App to enforce:
 - **Secure Coding Practices**: Detects secrets, injection flaws, and dangerous patterns.
