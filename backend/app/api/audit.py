@@ -76,7 +76,7 @@ async def get_audit_stats(days: int = 30):
                                 "file": fpath,
                                 "id": v.get("rule_id", "?"),
                                 "cat": cat,
-                                "sev": sorted_sev := sev
+                                "sev": sev
                             })
                             
                 except json.JSONDecodeError:
