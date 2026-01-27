@@ -6,13 +6,18 @@ router = APIRouter()
 
 AUDIT_LOG_FILE = "logs/audit.log"
 
+from datetime import datetime, timedelta
+
 @router.get("/stats")
-async def get_audit_stats():
+async def get_audit_stats(days: int = 30):
     """
     Returns statistics from the audit log for the dashboard.
+    Args:
+        days: Number of days to filter by (default 30). Use -1 for all time.
     """
     stats = {
         "categories": {"SECURITY": 0, "STYLE": 0, "COMPLIANCE": 0},
+        "severities": {"BLOCKING": 0, "WARNING": 0, "INFO": 0},
         "scans": 0,
         "violations": 0,
         "recent": [],
@@ -22,11 +27,28 @@ async def get_audit_stats():
     if not os.path.exists(AUDIT_LOG_FILE):
         return stats
 
+    # Calculate cutoff time
+    cutoff_date = None
+    if days > 0:
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+
     try:
         with open(AUDIT_LOG_FILE, "r") as f:
             for line in f:
                 try:
                     entry = json.loads(line)
+                    
+                    # Time Filter
+                    timestamp_str = entry.get("timestamp")
+                    if timestamp_str and cutoff_date:
+                        try:
+                            # Handle ISO format variations if needed, assume standard ISO
+                            entry_time = datetime.fromisoformat(timestamp_str)
+                            if entry_time < cutoff_date:
+                                continue # Skip old entries
+                        except ValueError:
+                            pass # If bad time format, include it safely or skip? Let's include safe.
+
                     stats["scans"] += 1
                     
                     if "violations" in entry and entry["violations"]:
@@ -39,6 +61,9 @@ async def get_audit_stats():
                             cat = v.get("category", "UNKNOWN")
                             stats["categories"][cat] = stats["categories"].get(cat, 0) + 1
                             
+                            sev = v.get("severity", "INFO")
+                            stats["severities"][sev] = stats["severities"].get(sev, 0) + 1
+
                             # Risky Files Logic
                             fpath = v.get("file_path", "unknown")
                             if fpath:
@@ -51,7 +76,7 @@ async def get_audit_stats():
                                 "file": fpath,
                                 "id": v.get("rule_id", "?"),
                                 "cat": cat,
-                                "sev": v.get("severity", "INFO")
+                                "sev": sorted_sev := sev
                             })
                             
                 except json.JSONDecodeError:
