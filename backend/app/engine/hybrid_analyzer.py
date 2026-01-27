@@ -16,10 +16,21 @@ class HybridAnalyzer:
             # 1. Static Analysis
             static_violations = await static_analyzer.scan_content(filename, content, request.config_override)
             file_violations.extend(static_violations)
+
+            # 1.5 License Scanning
+            from app.services.license_scanner import LicenseScanner
+            if filename.endswith(("package.json", "requirements.txt", "pom.xml")):
+                lic_violations = LicenseScanner.scan_content(filename, content)
+                # Convert dicts to Violation objects
+                for v in lic_violations:
+                    file_violations.append(Violation(**v))
             
             # 2. AI Analysis (Needs static context, so must run after static)
-            ai_violations = await llm_service.analyze_diff(filename, content, static_violations)
-            file_violations.extend(ai_violations)
+            # Only run AI analysis on code files, skip dependency configs to save tokens/time
+            if not filename.endswith(("package.json", "requirements.txt", "pom.xml")):
+                ai_violations = await llm_service.analyze_diff(filename, content, static_violations)
+                file_violations.extend(ai_violations)
+            
             return file_violations
 
         # Run all files in parallel
