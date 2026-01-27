@@ -1,7 +1,7 @@
 import { Probot } from "probot";
 import { handlePullRequest } from "./handlers/pr_handler";
 
-export = (app: Probot) => {
+export = (app: Probot, { getRouter }: any) => {
     app.log.info("App loaded! Waiting for webhooks...");
 
     app.on("pull_request.opened", async (context) => {
@@ -17,10 +17,9 @@ export = (app: Probot) => {
     });
 
     // Proxy Dashboard & Audit API to Python Backend
-    // Probot v13+ might hide getRouter in types, but it's often available or we use a workaround.
-    // Casting to 'any' to generic express router access.
-    const router = (app as any).getRouter("/dashboard");
-    const auditRouter = (app as any).getRouter("/api/v1/audit");
+    // In Probot v12+, getRouter is passed in the second argument options object
+    const router = getRouter("/dashboard");
+    const auditRouter = getRouter("/api/v1/audit");
 
     // We need to use 'http-proxy-middleware' manually if Probot doesn't expose full express app easily,
     // BUT Probot's getRouter() allows standard express handlers.
