@@ -1,0 +1,19 @@
+rules:
+  - id: "GDPR-001"
+    pattern: "(?i)(email|phone|address|mobile)\\s*=\\s*['\\\"][^'\\\"]+['\\\"]"
+    message: "Potential PII detected (Email/Phone). Ensure GDPR compliance for personal data processing."
+    severity: "WARNING"
+    category: "COMPLIANCE"
+    owasp_category: "A04:2021-Insecure Design"
+    
+  - id: "GDPR-002"
+    pattern: "(?i)(delete_user|remove_account|erasure)"
+    message: "Ensure 'Right to Erasure' (GDPR Art. 17) is properly implemented for this user data operation."
+    severity: "INFO"
+    category: "COMPLIANCE"
+
+  - id: "TEL-001"
+    pattern: "(?i)(imei|imsi|msisdn)\\s*=\\s*['\\\"][0-9]+['\\\"]"
+    message: "Hardcoded Telecom Identifier (IMEI/IMSI) detected. Sensitive subscriber data."
+    severity: "BLOCKING"
+    category: "SECURITY"

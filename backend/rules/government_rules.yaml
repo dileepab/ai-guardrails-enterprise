@@ -1,0 +1,19 @@
+rules:
+  - id: "FEDRAMP-001"
+    pattern: "(?i)(classified|top_secret|confidential)\\s*=\\s*['\\\"][^'\\\"]+['\\\"]"
+    message: "Potential CLASSIFIED data detected. Ensure FedRAMP High impact level compliance."
+    severity: "BLOCKING"
+    category: "SECURITY"
+    owasp_category: "A01:2021-Broken Access Control"
+
+  - id: "FISMA-001"
+    pattern: "(?i)audit_log\\s*=\\s*None"
+    message: "Disabling audit logging is prohibited under FISMA compliance."
+    severity: "BLOCKING"
+    category: "COMPLIANCE"
+
+  - id: "GOV-001"
+    pattern: "(?i)fips_140_2"
+    message: "Ensure FIPS 140-2 validated cryptography modules are used."
+    severity: "INFO"
+    category: "SECURITY"
