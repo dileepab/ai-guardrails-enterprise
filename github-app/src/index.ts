@@ -29,6 +29,15 @@ export = (app: Probot, { getRouter }: any) => {
     const proxyOptions = {
         target: backendUrl,
         changeOrigin: true,
+        pathRewrite: {
+            // Force preservation of paths. 
+            // The key '^/dashboard' -> value '/dashboard' tells it to rewrite /dashboard to /dashboard (no-op)
+            // But sometimes the library strips it BEFORE this config if mounted on a subpath.
+            // Since we mounted on "/", it shouldn't strip. 
+            // However, this explicit map safeguards it.
+            '^/dashboard': '/dashboard',
+            '^/api/v1/audit': '/api/v1/audit'
+        },
         logger: console
     };
 
