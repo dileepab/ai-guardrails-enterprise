@@ -40,5 +40,5 @@ export = (app: Probot, { getRouter }: any) => {
         logger: console
     };
 
-    router.use(createProxyMiddleware(['/dashboard', '/api/v1/audit'], proxyOptions));
+    router.use(['/dashboard', '/api/v1/audit'], createProxyMiddleware(proxyOptions));
 };
