@@ -5,6 +5,8 @@
 
 **Webhook URL**: `https://ai-guardrails-enterprise-production.up.railway.app/api/github/webhooks`
 
+**Dashboard URL**: `https://ai-guardrails-enterprise-production.up.railway.app/dashboard`
+
 **Repository**: [https://github.com/dileepab/ai-guardrails-enterprise](https://github.com/dileepab/ai-guardrails-enterprise)
 
 ---
