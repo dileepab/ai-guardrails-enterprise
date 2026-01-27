@@ -12,6 +12,7 @@ node_modules/
 npm-debug.log
 dist/
 build/
+github-app/lib/
 .DS_Store
 
 # Logs
