@@ -4,7 +4,7 @@ import os
 
 router = APIRouter()
 
-AUDIT_LOG_FILE = "audit.log"
+AUDIT_LOG_FILE = "logs/audit.log"
 
 @router.get("/stats")
 async def get_audit_stats():
