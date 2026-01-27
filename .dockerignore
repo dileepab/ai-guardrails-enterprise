@@ -1,0 +1,17 @@
+# Credentials
+.env
+backend/.env
+github-app/.env
+backend/venv
+github-app/node_modules
+
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store
+
+# IDE
+.idea
+.vscode
