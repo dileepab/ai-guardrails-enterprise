@@ -17,10 +17,9 @@ export = (app: Probot, { getRouter }: any) => {
     });
 
     // Proxy Dashboard & Audit API to Python Backend
-    // In Probot v12+, getRouter is passed in the second argument options object
-    // We mount on the root ("/") so that the paths (/dashboard, /api/v1/audit) are NOT stripped by Express.
-    // createProxyMiddleware will only match the paths in the filter list.
-    const router = (app as any).getRouter("/");
+    // We mount on the root ("/") to preserve paths.
+    // createProxyMiddleware with filter list handles the routing.
+    const router = getRouter("/");
 
     const { createProxyMiddleware } = require('http-proxy-middleware');
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
