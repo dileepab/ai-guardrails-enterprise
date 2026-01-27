@@ -37,7 +37,7 @@ EXPOSE 3000
 
 # Set Default Env Vars (can be overridden)
 ENV PORT=3000
-ENV BACKEND_URL=http://localhost:8000/api/v1
+ENV BACKEND_URL=http://localhost:8123/api/v1
 
 # Start Supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
