@@ -22,6 +22,8 @@ This solution provides an enterprise-grade guardrails system for GitHub Copilot 
 - **Hybrid Analysis Engine**: Combines Static Analysis (Regex/AST) with LLM-based reasoning.
 - **Audit Logging**: Comprehensive JSON logs for all scan activities (`backend/audit.log`).
 - **Configurable Rules**: Policy-as-Code via `backend/rules/default_rules.yaml`.
+- **Custom Rule Packs**: Add `.ai-guardrails.yaml` to any repository to override defaults (Banking, Healthcare standards).
+- **Compliance Dashboard**: Visual analytics available at `/dashboard` (e.g., https://your-app/dashboard).
 - **Developer Friendly**: Posts blocking reviews or info comments directly on Pull Requests.
 
 ## Repository Structure

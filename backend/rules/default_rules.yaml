@@ -4,6 +4,7 @@ rules:
     message: "Possible hardcoded secret detected."
     severity: "BLOCKING"
     category: "SECURITY"
+    link: "https://cwe.mitre.org/data/definitions/798.html"
   
   - id: "SAST-002"
     pattern: "(?i)eval\\s*\\("
@@ -34,6 +35,7 @@ rules:
     message: "Potential SQL Injection detected (String concatenation in SQL)."
     severity: "BLOCKING"
     category: "SECURITY"
+    link: "https://owasp.org/www-community/attacks/SQL_Injection"
 
   - id: "SAST-005"
     pattern: "(?i)(os\\.system|subprocess\\.Popen|subprocess\\.call)"
