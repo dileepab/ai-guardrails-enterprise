@@ -191,8 +191,24 @@
 
             // Render Table (Recent violations not yet in stats API, would need expansion)
             // For now, let's keep the table empty or add specific logic later.
+            // Render Table
             const tbody = document.querySelector('#violationsTable tbody');
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#64748b;'>Real-time log stream coming soon...</td></tr>";
+            if (data.recent && data.recent.length > 0) {
+                tbody.innerHTML = ""; // Clear placeholder
+                data.recent.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.time}</td>
+                        <td><code>${row.file}</code></td>
+                        <td>${row.id}</td>
+                        <td>${row.cat}</td>
+                        <td><span class="badge ${row.sev}">${row.sev}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#64748b;'>No violations found recently.</td></tr>";
+            }
         }
 
         // Init
