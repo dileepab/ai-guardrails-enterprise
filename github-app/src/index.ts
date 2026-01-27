@@ -17,9 +17,10 @@ export = (app: Probot) => {
     });
 
     // Proxy Dashboard & Audit API to Python Backend
-    // Probot uses Express under the hood. getRouter() returns an Express Router.
-    const router = app.getRouter("/dashboard");
-    const auditRouter = app.getRouter("/api/v1/audit");
+    // Probot v13+ might hide getRouter in types, but it's often available or we use a workaround.
+    // Casting to 'any' to generic express router access.
+    const router = (app as any).getRouter("/dashboard");
+    const auditRouter = (app as any).getRouter("/api/v1/audit");
 
     // We need to use 'http-proxy-middleware' manually if Probot doesn't expose full express app easily,
     // BUT Probot's getRouter() allows standard express handlers.
