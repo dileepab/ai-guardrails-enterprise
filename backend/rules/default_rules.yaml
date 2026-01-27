@@ -4,6 +4,8 @@ rules:
     message: "Possible hardcoded secret detected."
     severity: "BLOCKING"
     category: "SECURITY"
+    owasp_category: "A07:2021-Identification and Authentication Failures"
+    cwe_id: "CWE-798"
     link: "https://cwe.mitre.org/data/definitions/798.html"
   
   - id: "SAST-002"
@@ -11,18 +13,24 @@ rules:
     message: "Use of 'eval()' is dangerous and can lead to RCE."
     severity: "BLOCKING"
     category: "SECURITY"
+    owasp_category: "A03:2021-Injection"
+    cwe_id: "CWE-95"
 
   - id: "SAST-003"
     pattern: "(?i)exec\\s*\\("
     message: "Use of 'exec()' is dangerous."
     severity: "WARNING"
     category: "SECURITY"
+    owasp_category: "A03:2021-Injection"
+    cwe_id: "CWE-78"
     
   - id: "LOG-001"
     pattern: "(?i)print\\s*\\("
     message: "Avoid using print() in production. Use a logger."
     severity: "INFO"
     category: "STYLE"
+    owasp_category: "N/A"
+    cwe_id: "N/A"
 
   - id: "LOG-002"
     pattern: "(?i)logging\\.getLogger\\("
@@ -35,6 +43,8 @@ rules:
     message: "Potential SQL Injection detected (String concatenation in SQL)."
     severity: "BLOCKING"
     category: "SECURITY"
+    owasp_category: "A03:2021-Injection"
+    cwe_id: "CWE-89"
     link: "https://owasp.org/www-community/attacks/SQL_Injection"
 
   - id: "SAST-005"
@@ -42,6 +52,8 @@ rules:
     message: "Unsafe system command execution detected. Ensure input sanitization."
     severity: "WARNING"
     category: "SECURITY"
+    owasp_category: "A03:2021-Injection"
+    cwe_id: "CWE-78"
 
   - id: "STYLE-002"
     pattern: "class\\s+[a-z]"
@@ -54,6 +66,7 @@ rules:
     message: "Avoid bare 'except:' blocks. Catch specific exceptions."
     severity: "WARNING"
     category: "STYLE"
+    cwe_id: "CWE-391"
 
   - id: "LIC-001"
     pattern: "(?i)(GNU General Public License|AGPL|Affero)"
