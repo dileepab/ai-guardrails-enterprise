@@ -51,7 +51,9 @@ pip install -r requirements.txt
 
 # Configure Environment
 # Create .env file with:
-# GEMINI_API_KEY=your_key_here
+LLM_PROVIDER=gemini # Options: "gemini", "openai"
+GEMINI_API_KEY=your_gemini_key_here
+OPENAI_API_KEY=your_openai_key_here # Optional if using gemini
 ```
 
 ### 2. GitHub App Configuration (Critical)
@@ -75,6 +77,9 @@ To enable End-to-End protection, you must register and configure a GitHub App:
     APP_ID=12345
     PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----...-----END RSA PRIVATE KEY-----"
     WEBHOOK_SECRET=development  # MUST MATCH GitHub App setting
+    GITHUB_CLIENT_ID=Iv1...     # From App Settings
+    GITHUB_CLIENT_SECRET=962... # From App Settings
+    LOG_LEVEL=info
     ```
 
 ### 3. Branch Protection (Enforce Blocking)
