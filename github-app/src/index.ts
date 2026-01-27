@@ -22,23 +22,28 @@ export = (app: Probot, { getRouter }: any) => {
     const router = getRouter("/");
 
     const { createProxyMiddleware } = require('http-proxy-middleware');
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-    // Ensure backendUrl doesn't have a path suffix if we want 1:1 mapping
+    const backendUrl = (process.env.BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+    // Strips trailing slash if present
 
-    const proxyOptions = {
-        target: backendUrl,
+    // 1. Dashboard Proxy
+    // Mounted on /dashboard. Express strips '/dashboard', so req.url becomes '/'.
+    // We set target to include '/dashboard' so it reconstructs the correct upstream URL.
+    const dashboardProxy = createProxyMiddleware({
+        target: `${backendUrl}/dashboard`,
         changeOrigin: true,
-        pathRewrite: {
-            // Force preservation of paths. 
-            // The key '^/dashboard' -> value '/dashboard' tells it to rewrite /dashboard to /dashboard (no-op)
-            // But sometimes the library strips it BEFORE this config if mounted on a subpath.
-            // Since we mounted on "/", it shouldn't strip. 
-            // However, this explicit map safeguards it.
-            '^/dashboard': '/dashboard',
-            '^/api/v1/audit': '/api/v1/audit'
-        },
-        logger: console
-    };
+        logger: console,
+        pathRewrite: { '^/$': '' } // Remove potential double slash if any, but mainly purely rely on target
+    });
 
-    router.use(['/dashboard', '/api/v1/audit'], createProxyMiddleware(proxyOptions));
+    // 2. Audit API Proxy
+    // Mounted on /api/v1/audit.
+    const auditProxy = createProxyMiddleware({
+        target: `${backendUrl}/api/v1/audit`,
+        changeOrigin: true,
+        logger: console,
+        pathRewrite: { '^/$': '' }
+    });
+
+    router.use('/dashboard', dashboardProxy);
+    router.use('/api/v1/audit', auditProxy);
 };
