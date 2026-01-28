@@ -110,14 +110,48 @@ def main():
         res_body = response.read()
         data = json.loads(res_body)
         
-        if not data.get("succeeded", True):
-            print("\n❌ BLOCKING ISSUES FOUND (AI Guardrails):")
-            for v in data.get("violations", []):
-                if v["severity"] == "BLOCKING":
-                    print(f"  - [{v['rule_id']}] {v['file_path']}: {v['message']}")
+    if not data.get("succeeded", True):
+            # ANSI Colors
+            RED = "\033[91m"
+            GREEN = "\033[92m"
+            YELLOW = "\033[93m"
+            BLUE = "\033[94m"
+            BOLD = "\033[1m"
+            RESET = "\033[0m"
+
+            print(f"\n{RED}{BOLD}🛡️  AI GUARDRAILS POLICY CHECK FAILED{RESET}")
+            print(f"{RED}========================================{RESET}\n")
             
-            print("\n🚫 Commit rejected. Please fix blocking issues.")
-            sys.exit(1)
+            violations = data.get("violations", [])
+            blocking_count = sum(1 for v in violations if v["severity"] == "BLOCKING")
+            
+            print(f"{BOLD}Found {len(violations)} violations ({blocking_count} BLOCKING){RESET}\n")
+
+            current_file = ""
+            for v in violations:
+                severity = v["severity"]
+                color = RED if severity == "BLOCKING" else YELLOW
+                icon = "❌" if severity == "BLOCKING" else "⚠️ "
+                
+                # Group visual separation by file if needed, but simple list is robust
+                print(f"{color}{icon} [{v['rule_id']}] {severity}{RESET}")
+                
+                line_str = f":{v.get('line_number', '?')}" if v.get('line_number') else ""
+                print(f"   📂 File: {BOLD}{v['file_path']}{line_str}{RESET}")
+                print(f"   📝 Msg:  {v['message']}")
+                
+                if v.get("suggestion"):
+                    print(f"   💡 Fix:  {BLUE}{v['suggestion']}{RESET}")
+                print("") # Spacer
+
+            if blocking_count > 0:
+                print(f"{RED}{BOLD}🚫 COMMIT REJECTED{RESET}")
+                print("   Blocking violations must be resolved before committing.")
+                print("   (Use --no-verify to bypass if absolutely necessary, but this is logged.)")
+                sys.exit(1)
+            else:
+                 print(f"{YELLOW}⚠️  Warnings found, but commit proceeds.{RESET}")
+                 sys.exit(0)
             
         print("✅ Guardrails passed.")
         sys.exit(0)
