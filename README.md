@@ -105,6 +105,22 @@ npm install
 npm start
 ```
 
+### 🐳 Running with Docker (Recommended for Testing)
+To run the entire stack locally using Docker:
+
+```bash
+docker-compose up --build
+```
+This starts the Backend on port 8000 and the Node App on port 3000.
+
+**Note for Judges (API Keys):**
+The solution requires a valid `GEMINI_API_KEY` (or OpenAI Key).
+Please ensure this variable is set in the `backend/.env` file or passed as an environment variable when running the container.
+```bash
+export GEMINI_API_KEY="your_key_here"
+docker-compose up
+```
+
 ### 🛡️ Pre-Commit Hook (Enterprise Protection)
 To enforce guardrails in *any* local repository:
 
@@ -145,8 +161,17 @@ These commits are logged specifically in the audit trail for "AI vs Human" compl
 
 
 ## Architecture
-[GitHub Mock Event] -> [GitHub App (TS)] -> [Backend API (Python)] -> [Hybrid Engine]
-                                                                        |-> [Static Analysis Service]
-                                                                        |-> [LLM Service (Gemini)]
-                                                                        |-> [Rule Engine]
-                                                                        |-> [Audit Logger]
+[GitHub Mock Event] -> [GitHub App (Node/Int)] -> [Backend API (Python/Public)]
+                                                      |-> [Pre-Commit Hook Distribution]
+                                                      |-> [Dashboard]
+                                                      |-> [Hybrid Engine]
+                                                           |-> [Static Analysis]
+                                                           |-> [LLM Service (Gemini)]
+                                                           |-> [Rule Engine]
+                                                           |-> [Audit Logger]
+
+## 🛠️ Troubleshooting (Deployment)
+If you encounter 502/503 errors on Railway:
+1.  **Port Binding**: Ensure `uvicorn` listens on port `8000` (matches Dockerfile `EXPOSE`).
+2.  **Redirect Loops (405)**: Ensure `uvicorn` runs with `--proxy-headers --forwarded-allow-ips '*'` to handle HTTPS redirects correctly.
+3.  **Startup Crashes**: Check if `httpx` logic in `main.py` is causing issues. It is wrapped in a `try/except` block for safety.

@@ -7,12 +7,7 @@ from app.core.database import get_db
 router = APIRouter()
 
 # Assuming a default SQLite DB path
-DATABASE_URL = "sqlite:///./audit.db" 
 
-def get_db():
-    conn = sqlite3.connect("audit.db") # Connect to the SQLite database
-    conn.row_factory = sqlite3.Row # Optional: to access columns by name
-    return conn
 
 from datetime import datetime, timedelta
 

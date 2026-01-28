@@ -160,9 +160,14 @@ You can run both the Backend and GitHub App in a **single Docker container** (on
     *   Generate a **Public Domain** (e.g., `ai-guardrails-production.up.railway.app`).
 5.  **Webhook Setup**:
     *   Use the Public Domain + `/api/github/webhooks` for your GitHub App Webhook URL.
-    *   Use the Public Domain + `/api/github/webhooks` for your GitHub App Webhook URL.
     *   **Final Verified URL**: `https://ai-guardrails-enterprise-production.up.railway.app/api/github/webhooks`
 
+### Persistence (Important)
+The solution now uses a SQLite database (`audit.db`) for robust logging and admin overrides.
+*   **On Railway/Render (Default)**: The filesystem is ephemeral. If you restart the service, `audit.db` resets.
+*   **For Production**: Mount a **Volume** to `/app/backend`.
+    *   **Railway**: Add a Volume mapped to `/app` or use `RAILWAY_VOLUME_MOUNT_PATH` logic.
+    *   **Docker**: Map a host volume: `-v $(pwd)/backend:/app/backend`.
 
 ---
 

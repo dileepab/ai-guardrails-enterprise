@@ -1,4 +1,5 @@
 from app.core.database import log_audit_event
+from app.models.scan import ScanRequest, ScanResponse
 
 class AuditLogger:
     def log_scan(self, request: ScanRequest, response: ScanResponse):

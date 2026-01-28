@@ -17,6 +17,7 @@ export = (app: Probot, { getRouter }: any) => {
     });
 
     // Endpoint for Python Backend to trigger Admin Override (Internal Localhost Only)
+    const router = getRouter("/");
     router.use(require("express").json());
     router.post("/api/override", async (req: any, res: any) => {
         try {
