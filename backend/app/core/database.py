@@ -12,6 +12,8 @@ def get_db():
 
 def init_db():
     conn = get_db()
+    # Enable Write-Ahead Logging (WAL) for better concurrency with multiple workers/processes
+    conn.execute("PRAGMA journal_mode=WAL;")
     cursor = conn.cursor()
     
     # Audit Logs Table
