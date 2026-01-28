@@ -105,14 +105,17 @@ npm install
 npm start
 ```
 
-### 🛡️ Pre-Commit Hook (Local Protection)
-To enforce guardrails *before* you even push code, install the local hook:
+### 🛡️ Pre-Commit Hook (Enterprise Protection)
+To enforce guardrails in *any* local repository:
+
+1.  Go to your deployed **AI Guardrails Dashboard**.
+2.  Copy the installation command (it looks like this):
 
 ```bash
-./setup-hooks.sh
+curl -sL https://your-deployment-url.com/setup-hooks.sh | bash
 ```
 
-Now, every time you run `git commit`, the system will scan your staged changes. If it finds **BLOCKING** violations (like secrets or Copilot-generated errors), the commit will be rejected immediately.
+Run this in your repository root. Now, every time you commit, your code is securely scanned by the Enterprise Guardrails Server. If it finds **BLOCKING** violations, the commit is rejected.
 
 ## Usage
 1.  Install the GitHub App on your repository.
