@@ -1,10 +1,18 @@
 from fastapi import APIRouter
 import json
 import os
+from datetime import datetime, timedelta
+from app.core.database import get_db
 
 router = APIRouter()
 
-AUDIT_LOG_FILE = "logs/audit.log"
+# Assuming a default SQLite DB path
+DATABASE_URL = "sqlite:///./audit.db" 
+
+def get_db():
+    conn = sqlite3.connect("audit.db") # Connect to the SQLite database
+    conn.row_factory = sqlite3.Row # Optional: to access columns by name
+    return conn
 
 from datetime import datetime, timedelta
 
@@ -24,72 +32,69 @@ async def get_audit_stats(days: int = 30):
         "riskyFiles": {}
     }
 
-    if not os.path.exists(AUDIT_LOG_FILE):
-        return stats
+    conn = get_db()
+    cursor = conn.cursor()
 
-    # Calculate cutoff time
-    cutoff_date = None
+    # Time Filter
+    date_filter = ""
+    params = []
     if days > 0:
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        date_filter = "WHERE timestamp >= ?"
+        params.append(cutoff_date)
 
-    try:
-        with open(AUDIT_LOG_FILE, "r") as f:
-            for line in f:
-                try:
-                    entry = json.loads(line)
-                    
-                    # Time Filter
-                    timestamp_str = entry.get("timestamp")
-                    if timestamp_str and cutoff_date:
-                        try:
-                            # Handle ISO format variations if needed, assume standard ISO
-                            entry_time = datetime.fromisoformat(timestamp_str)
-                            if entry_time < cutoff_date:
-                                continue # Skip old entries
-                        except ValueError:
-                            pass # If bad time format, include it safely or skip? Let's include safe.
+    # 1. Count Scans
+    cursor.execute(f"SELECT COUNT(*) FROM audit_logs {date_filter}", params)
+    stats["scans"] = cursor.fetchone()[0]
 
-                    stats["scans"] += 1
-                    
-                    if "violations" in entry and entry["violations"]:
-                        # Add to recent scans (track the whole entry, but we only need flattened violations for the table)
-                        # Let's flatten violations for the "Recent Violations" table
-                        timestamp = entry.get("timestamp", "N/A")
-                        
-                        for v in entry["violations"]:
-                            stats["violations"] += 1
-                            cat = v.get("category", "UNKNOWN")
-                            stats["categories"][cat] = stats["categories"].get(cat, 0) + 1
-                            
-                            sev = v.get("severity", "INFO")
-                            stats["severities"][sev] = stats["severities"].get(sev, 0) + 1
+    # 2. Fetch Violations Data
+    # We fetch all matching rows and parse JSON in Python. 
+    # (SQLite JSON1 extension exists but this is safer for pure python env compatibility)
+    cursor.execute(f"SELECT timestamp, violations_json FROM audit_logs {date_filter} ORDER BY timestamp DESC LIMIT 200", params)
+    rows = cursor.fetchall()
+    
+    for row in rows:
+        ts = row[0]
+        try:
+            violations = json.loads(row[1])
+            if not violations:
+                continue
 
-                            # Risky Files Logic
-                            fpath = v.get("file_path", "unknown")
-                            if fpath:
-                                stats["riskyFiles"][fpath] = stats["riskyFiles"].get(fpath, 0) + 1
-                            
-                            # Recent Violations Logic (Store flattened view for table)
-                            # We keep simple dicts: {time, file, id, cat, sev}
-                            stats["recent"].append({
-                                "time": timestamp.split("T")[0] + " " + timestamp.split("T")[1][:5], # Simple fmt
-                                "file": fpath,
-                                "id": v.get("rule_id", "?"),
-                                "cat": cat,
-                                "sev": sev
-                            })
-                            
-                except json.JSONDecodeError:
-                    continue
-    except Exception as e:
-        print(f"Error reading audit log: {e}")
+            for v in violations:
+                stats["violations"] += 1
+                
+                # Category Stats
+                cat = v.get("category", "UNKNOWN")
+                stats["categories"][cat] = stats["categories"].get(cat, 0) + 1
+                
+                # Severity Stats
+                sev = v.get("severity", "INFO")
+                stats["severities"][sev] = stats["severities"].get(sev, 0) + 1
 
-    # Post-processing:
-    # 1. Sort risky files by count (desc) and take top 5
-    sorted_risky = sorted(stats["riskyFiles"].items(), key=lambda x: x[1], reverse=True)[:5]
-    stats["riskyFiles"] = dict(sorted_risky)
+                # Risky Files
+                fpath = v.get("file_path", "unknown")
+                stats["riskyFiles"][fpath] = stats["riskyFiles"].get(fpath, 0) + 1
 
-    # 2. Sort recent by time (desc, assuming log is append-only, reverse list is enough) and take top 10
-    stats["recent"] = sorted(stats["recent"], key=lambda x: x["time"], reverse=True)[:10]
+                # Recent Table Entry (Only add if we have space in the "recent" list limit)
+                # We flattened the list, so we might have duplicate timestamps for same scan.
+                # Actually, let's just add to "recent" list here
+                stats["recent"].append({
+                    "time": ts.split("T")[0] + " " + ts.split("T")[1][:5],
+                    "file": fpath,
+                    "id": v.get("rule_id", "?"),
+                    "cat": cat,
+                    "sev": sev,
+                    # We need commit_sha for Override button later? We don't have it in the violation object usually.
+                    # We might need to join/fetch it. For now, this matches previous behavior.
+                })
+
+        except json.JSONDecodeError:
+            pass
+
+    conn.close()
+
+    # Post-processing
+    stats["riskyFiles"] = dict(sorted(stats["riskyFiles"].items(), key=lambda x: x[1], reverse=True)[:5])
+    stats["recent"] = stats["recent"][:10] # Top 10 flattened violations
 
     return stats
