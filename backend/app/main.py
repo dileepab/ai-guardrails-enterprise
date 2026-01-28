@@ -16,6 +16,11 @@ app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"]) # Added
 async def get_dashboard():
     return FileResponse("dashboard.html")
 
+@app.get("/setup-hooks.sh", response_class=FileResponse)
+async def get_hooks_script():
+    # Serve script from parent directory (dev/setup-hooks.sh) relative to backend/
+    return FileResponse("../setup-hooks.sh", filename="setup-hooks.sh")
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
