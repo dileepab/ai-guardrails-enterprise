@@ -177,23 +177,27 @@ echo "   Configured API: $API_URL"
 
 from string import Template
 
-import httpx
-from starlette.background import BackgroundTask
-from starlette.requests import Request
-from starlette.responses import StreamingResponse
-
-# ... existing code ...
-
-# Create a robust HTTP client for proxying
-client = httpx.AsyncClient(base_url="http://127.0.0.1:3000")
+try:
+    import httpx
+    # Create a robust HTTP client for proxying
+    client = httpx.AsyncClient(base_url="http://127.0.0.1:3000")
+    HTTPX_AVAILABLE = True
+except ImportError:
+    print("⚠️  HTTPX not found. Webhook proxy disabled.")
+    client = None
+    HTTPX_AVAILABLE = False
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    await client.aclose()
+    if client:
+        await client.aclose()
 
 # Proxy GitHub Webhooks to the Node.js App (running on port 3000 internally)
 @app.post("/api/github/webhooks", include_in_schema=False)
 async def proxy_webhooks(request: Request):
+    if not HTTPX_AVAILABLE or not client:
+        return Response(content="Webhook Proxy Unavailable (Missing Dependency)", status_code=503)
+
     try:
         url = httpx.URL(path=request.url.path, query=request.url.query.encode("utf-8"))
         rp_req = client.build_request(
