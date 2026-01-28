@@ -177,6 +177,42 @@ echo "   Configured API: $API_URL"
 
 from string import Template
 
+import httpx
+from starlette.background import BackgroundTask
+from starlette.requests import Request
+from starlette.responses import StreamingResponse
+
+# ... existing code ...
+
+# Create a robust HTTP client for proxying
+client = httpx.AsyncClient(base_url="http://127.0.0.1:3000")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await client.aclose()
+
+# Proxy GitHub Webhooks to the Node.js App (running on port 3000 internally)
+@app.post("/api/github/webhooks", include_in_schema=False)
+async def proxy_webhooks(request: Request):
+    try:
+        url = httpx.URL(path=request.url.path, query=request.url.query.encode("utf-8"))
+        rp_req = client.build_request(
+            request.method,
+            url,
+            headers=request.headers.raw,
+            content=await request.body(),
+        )
+        rp_resp = await client.send(rp_req, stream=True)
+        return StreamingResponse(
+            rp_resp.aiter_raw(),
+            status_code=rp_resp.status_code,
+            headers=rp_resp.headers,
+            background=BackgroundTask(rp_resp.aclose),
+        )
+    except Exception as e:
+        print(f"Error proxying webhook: {e}")
+        return Response(content="Internal Proxy Error", status_code=500)
+
 @app.get("/setup-hooks.sh", response_class=Response)
 async def get_hooks_script(request: Request):
     # Dynamically inject the correct API URL based on where the request came from
