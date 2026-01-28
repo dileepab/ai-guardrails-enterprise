@@ -96,7 +96,15 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
 
     // 2. Call Backend API
     try {
-        const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/api/v1";
+        let backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000/api/v1";
+
+        // Robustness: Ensure URL ends with /api/v1
+        if (!backendUrl.endsWith('/api/v1')) {
+            // Avoid double slashes if user put trailing slash
+            backendUrl = backendUrl.replace(/\/+$/, "") + "/api/v1";
+        }
+
+
         const response = await axios.post<ScanResponse>(`${backendUrl}/scan`, {
             repo_full_name: `${repo.owner}/${repo.repo}`,
             pr_number: pr.number,
