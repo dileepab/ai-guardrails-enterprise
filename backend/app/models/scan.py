@@ -12,7 +12,7 @@ class Violation(BaseModel):
 
 class ScanRequest(BaseModel):
     repo_full_name: str
-    pr_number: int
+    pr_number: Optional[int] = None
     commit_sha: str
     files: List[Dict[str, str]]
     # Req #2: Repository-level config override (YAML string)

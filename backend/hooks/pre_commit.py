@@ -1,99 +1,89 @@
 #!/usr/bin/env python3
 import sys
 import os
-import re
 import subprocess
-import yaml
+import json
+import urllib.request
+import urllib.error
 
-# Path to rules - Assume we are running from repo root or .git/hooks which is usually .git/hooks/pre-commit
-# But the script is located in backend/hooks/pre_commit.py and symlinked or called.
-# Let's assume this script is CALLED by the bash pre-commit hook or IS the hook.
-# To be safe, we'll assume this script is copied or symlinked to .git/hooks/pre-commit
+# DEFAULT CONFIG
+API_URL = os.environ.get("GUARDRAILS_API_URL", "http://127.0.0.1:8000/api/v1/scan")
+# In production, users should set this env var or update the script
 
 def get_staged_files():
     """Get list of staged files"""
     try:
-        # git diff --cached --name-only
         result = subprocess.check_output(['git', 'diff', '--cached', '--name-only'], encoding='utf-8')
         return [f for f in result.splitlines() if f]
     except subprocess.CalledProcessError:
         return []
 
-def load_rules():
-    """Load matching rules from backend/rules/default_rules.yaml"""
-    # Try to locate the rules file relative to the git root
-    repo_root = os.getcwd() # Hook runs in repo root
-    rules_path = os.path.join(repo_root, 'backend', 'rules', 'default_rules.yaml')
-    
-    if not os.path.exists(rules_path):
-        print(f"⚠️  Configuration not found at {rules_path}. Skipping guardrails.")
-        return []
-        
-    try:
-        with open(rules_path, 'r') as f:
-            data = yaml.safe_load(f)
-            return data.get('rules', [])
-    except Exception as e:
-        print(f"⚠️  Failed to load rules: {e}")
-        return []
-
-def scan_file(filepath, rules):
-    """Scan a single file for violations"""
-    if not os.path.exists(filepath):
-        return []
-        
-    violations = []
+def read_file_content(filepath):
+    """Read content of a file"""
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-            
-        for rule in rules:
-            # Skip non-blocking for pre-commit (keep it fast and annoying only for critical stuff)
-            # Actually, let's enforce BLOCKING ones only
-            if rule.get('severity') != 'BLOCKING':
-                continue
-                
-            pattern = rule.get('pattern')
-            if re.search(pattern, content):
-                violations.append(rule)
+            return f.read()
     except Exception:
-        pass # Ignore binary files etc
-        
-    return violations
+        return ""
 
 def main():
-    print("🛡️  AI Guardrails: Pre-commit Scan...")
+    print("🛡️  AI Guardrails: Local Scan...")
+    
     files = get_staged_files()
     if not files:
         sys.exit(0)
-        
-    all_rules = load_rules()
-    if not all_rules:
-        sys.exit(0)
-        
-    has_error = False
-    
-    for filename in files:
-        # Ignore deleted files
-        if not os.path.exists(filename):
-            continue
+
+    # Prepare payload
+    files_payload = []
+    for f in files:
+        if os.path.exists(f) and not f.endswith(('.png', '.jpg', '.lock', '.zip')):
+            files_payload.append({
+                "filename": f,
+                "content": read_file_content(f),
+                "patch": "" # Optional for local scan
+            })
             
-        # Ignore likely non-source files
-        if filename.endswith(('.png', '.jpg', '.lock', '.zip')):
-            continue
+    if not files_payload:
+        sys.exit(0)
 
-        violations = scan_file(filename, all_rules)
-        if violations:
-            for v in violations:
-                print(f"❌ [BLOCKING] {v['id']} in {filename}: {v['message']}")
-            has_error = True
+    payload = {
+        "repo_full_name": "local/repo",
+        "pr_number": None,
+        "commit_sha": "local-staged",
+        "files": files_payload,
+        "is_copilot_generated": False # We could detect this via git config user.name potentially
+    }
 
-    if has_error:
-        print("\n🚫 Commit rejected by Guardrails. Please fix blocking issues above.")
-        sys.exit(1)
+    try:
+        req = urllib.request.Request(API_URL)
+        req.add_header('Content-Type', 'application/json')
+        jsondata = json.dumps(payload).encode('utf-8')
+        req.add_header('Content-Length', len(jsondata))
         
-    print("✅ Guardrails passed.")
-    sys.exit(0)
+        response = urllib.request.urlopen(req, jsondata)
+        res_body = response.read()
+        data = json.loads(res_body)
+        
+        if not data.get("succeeded", True):
+            print("\n❌ Blocking Issues Found:")
+            for v in data.get("violations", []):
+                if v["severity"] == "BLOCKING":
+                    print(f"  - [{v['rule_id']}] {v['file_path']}: {v['message']}")
+            
+            print("\n🚫 Commit rejected. Please fix the above issues.")
+            sys.exit(1)
+            
+        print("✅ Guardrails passed.")
+        sys.exit(0)
+
+    except urllib.error.URLError as e:
+        print(f"⚠️  Could not connect to Guardrails API at {API_URL}")
+        print(f"   Error: {e}")
+        print("   Proceeding with commit (fail-open strategy for local dev).")
+        sys.exit(0) # Fail open if server down
+    except Exception as e:
+        print(f"Error validating commit: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
