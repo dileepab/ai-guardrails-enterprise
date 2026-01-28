@@ -236,3 +236,63 @@ async def get_hooks_script(request: Request):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+# Q6: Admin Override Endpoint
+@app.post("/api/v1/override")
+async def admin_override(request: Request):
+    """
+    Allows Admin to override a blocking status.
+    1. Log to DB.
+    2. Call Node App to update GitHub status.
+    """
+    try:
+        body = await request.json()
+        repo = body.get("repo")
+        commit_sha = body.get("commit_sha")
+        reason = body.get("reason", "Manual Admin Override")
+        
+        if not repo or not commit_sha:
+             return Response(content="Missing repo or commit_sha", status_code=400)
+
+        # 1. Log to SQLite
+        from app.core.database import get_db, log_audit_event
+        from datetime import datetime
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO audit_overrides (timestamp, repo, commit_sha, admin_user, reason)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (datetime.utcnow().isoformat(), repo, commit_sha, "admin", reason))
+        conn.commit()
+        conn.close()
+
+        # Log as main audit event too
+        log_audit_event(
+            event_type="ADMIN_OVERRIDE",
+            repo=repo,
+            commit_sha=commit_sha,
+            status="SUCCESS",
+            details={"reason": reason, "action": "BLOCKING_OVERRIDDEN"}
+        )
+
+        # 2. Call Node App (Internal)
+        if HTTPX_AVAILABLE and client:
+            # We use the same 'client' but target port 3000 explicitly
+            # client base_url is "http://127.0.0.1:3000"
+            res = await client.post("/api/override", json={
+                "repo_full_name": repo,
+                "commit_sha": commit_sha,
+                "reason": reason
+            })
+            if res.status_code != 200:
+                print(f"Node App Override failed: {res.text}")
+                return Response(content=f"Upstream Error: {res.text}", status_code=500)
+        else:
+            return Response(content="Internal Communication Error (HTTPX missing)", status_code=500)
+
+        return {"status": "overridden"}
+
+    except Exception as e:
+        print(f"Override Error: {e}")
+        return Response(content=str(e), status_code=500)
