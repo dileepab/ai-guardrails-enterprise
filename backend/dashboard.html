@@ -217,6 +217,7 @@
                             <th>Policy ID</th>
                             <th>Category</th>
                             <th>Severity</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -225,11 +226,6 @@
                 </table>
             </div>
         </div>
-        <tbody>
-            <!-- Populated by JS -->
-        </tbody>
-        </table>
-    </div>
     </div>
 
     <script>
@@ -260,6 +256,34 @@
             } catch (error) {
                 console.error("Error fetching stats:", error);
                 document.getElementById('riskyFilesList').innerHTML = "<li>Error loading data.</li>";
+            }
+        }
+
+        async function overrideStatus(repo, commit_sha) {
+            if (!repo || repo === "N/A" || !commit_sha || commit_sha === "N/A") {
+                alert("Cannot override: Missing Repository or Commit SHA metadata.");
+                return;
+            }
+
+            const reason = prompt("Enter reason for override (Audit Log):", "Manual Admin Approval");
+            if (!reason) return;
+
+            try {
+                const response = await fetch("/api/v1/override", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ repo, commit_sha, reason })
+                });
+
+                if (response.ok) {
+                    alert("✅ Override Successful! GitHub Status updated to GREEN.");
+                    fetchStats(); // Refresh UI
+                } else {
+                    const txt = await response.text();
+                    alert(`❌ Override Failed: ${txt}`);
+                }
+            } catch (e) {
+                alert(`Error: ${e}`);
             }
         }
 
@@ -351,6 +375,15 @@
             if (data.recent && data.recent.length > 0) {
                 tbody.innerHTML = "";
                 data.recent.forEach(row => {
+                    // Only show approve button if row has repo/sha and is NOT a local file scan
+                    // Local scans (file path only) don't have repo/sha context usually unless we fake it.
+                    // But blocking status overrides are for PRs.
+                    const canOverride = row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A";
+
+                    const btnHtml = canOverride
+                        ? `<button onclick="overrideStatus('${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
+                        : `<span style="color:#64748b; font-size:0.75rem;">Local/No Context</span>`;
+
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
     <td>${row.time}</td>
@@ -358,11 +391,12 @@
     <td>${row.id}</td>
     <td>${row.cat}</td>
     <td><span class="badge ${row.sev}">${row.sev}</span></td>
+    <td>${btnHtml}</td>
     `;
                     tbody.appendChild(tr);
                 });
             } else {
-                tbody.innerHTML = `<tr><td colspan='5' style='text-align:center; color:#64748b;'>No violations found in this period.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='6' style='text-align:center; color:#64748b;'>No violations found in this period.</td></tr>`;
             }
         }
 
