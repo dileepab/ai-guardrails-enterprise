@@ -105,10 +105,20 @@ npm install
 npm start
 ```
 
+### 🛡️ Pre-Commit Hook (Local Protection)
+To enforce guardrails *before* you even push code, install the local hook:
+
+```bash
+./setup-hooks.sh
+```
+
+Now, every time you run `git commit`, the system will scan your staged changes. If it finds **BLOCKING** violations (like secrets or Copilot-generated errors), the commit will be rejected immediately.
+
 ## Usage
 1.  Install the GitHub App on your repository.
 2.  Open a Pull Request.
 3.  The system automatically scans changed files and posts review comments.
+
 
 ## ⚙️ Configuration Guide
 
