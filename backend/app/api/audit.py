@@ -50,11 +50,13 @@ async def get_audit_stats(days: int = 30):
     # 2. Fetch Violations Data
     # We fetch all matching rows and parse JSON in Python. 
     # (SQLite JSON1 extension exists but this is safer for pure python env compatibility)
-    cursor.execute(f"SELECT timestamp, violations_json FROM audit_logs {date_filter} ORDER BY timestamp DESC LIMIT 200", params)
+    cursor.execute(f"SELECT timestamp, violations_json, repo, commit_sha FROM audit_logs {date_filter} ORDER BY timestamp DESC LIMIT 200", params)
     rows = cursor.fetchall()
     
     for row in rows:
         ts = row[0]
+        repo_val = row[2]
+        commit_val = row[3]
         try:
             violations = json.loads(row[1])
             if not violations:
@@ -77,15 +79,14 @@ async def get_audit_stats(days: int = 30):
 
                 # Recent Table Entry (Only add if we have space in the "recent" list limit)
                 # We flattened the list, so we might have duplicate timestamps for same scan.
-                # Actually, let's just add to "recent" list here
                 stats["recent"].append({
                     "time": ts.split("T")[0] + " " + ts.split("T")[1][:5],
                     "file": fpath,
                     "id": v.get("rule_id", "?"),
                     "cat": cat,
                     "sev": sev,
-                    # We need commit_sha for Override button later? We don't have it in the violation object usually.
-                    # We might need to join/fetch it. For now, this matches previous behavior.
+                    "repo": repo_val,
+                    "commit_sha": commit_val
                 })
 
         except json.JSONDecodeError:
