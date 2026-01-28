@@ -27,7 +27,7 @@ RUN npm ci
 WORKDIR /app
 COPY backend ./backend
 COPY github-app ./github-app
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.template.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
