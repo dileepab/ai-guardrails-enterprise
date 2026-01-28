@@ -18,8 +18,8 @@ async def get_dashboard():
 
 @app.get("/setup-hooks.sh", response_class=FileResponse)
 async def get_hooks_script():
-    # Serve script from parent directory (dev/setup-hooks.sh) relative to backend/
-    return FileResponse("../setup-hooks.sh", filename="setup-hooks.sh")
+    # Serve script from current directory (backend/) where it is located
+    return FileResponse("setup-hooks.sh", filename="setup-hooks.sh")
 
 @app.get("/health")
 def health_check():
