@@ -16,10 +16,44 @@ export = (app: Probot, { getRouter }: any) => {
         await handlePullRequest(context);
     });
 
-    // Proxy Dashboard & Audit API to Python Backend
-    // We mount on the root ("/") to preserve paths.
-    // createProxyMiddleware with filter list handles the routing.
-    const router = getRouter("/");
+    // Endpoint for Python Backend to trigger Admin Override (Internal Localhost Only)
+    router.use(require("express").json());
+    router.post("/api/override", async (req: any, res: any) => {
+        try {
+            const { repo_full_name, commit_sha, reason } = req.body;
+            app.log.info(`Received Admin Override for ${repo_full_name} @ ${commit_sha}`);
+
+            const [owner, repo] = repo_full_name.split("/");
+
+            // 1. Get Installation ID for this repo
+            // Authenticate as App (JWT) to find installation
+            const jwtOctokit = await app.auth();
+            const installation = await jwtOctokit.apps.getRepoInstallation({ owner, repo });
+
+            // 2. Authenticate as Installation
+            const octokit = await app.auth(installation.data.id);
+
+            // 3. Post "Success" Status
+            await octokit.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: commit_sha,
+                state: "success",
+                description: `Admin Override: ${reason || "Manual Approval"}`,
+                context: "ai-guardrails", // Must match the context used by the bot
+                target_url: `${process.env.BACKEND_URL || "https://ai-guardrails-enterprise-production.up.railway.app"}/dashboard`
+            });
+
+            res.json({ status: "ok", message: "Override applied" });
+        } catch (error: any) {
+            app.log.error(error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Proxy Dashboard & Audit API to Python Backend (Legacy/Dev - In Prod Python is Gateway)
+    // We keep this just in case verified logic relies on it, but it's largely unused in current Prod setup.
+    const routerProxy = getRouter("/");
 
     const { createProxyMiddleware } = require('http-proxy-middleware');
     // On Railway BACKEND_URL includes /api/v1, but we need the base root for the dashboard.
@@ -28,17 +62,14 @@ export = (app: Probot, { getRouter }: any) => {
     backendUrl = backendUrl.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
 
     // 1. Dashboard Proxy
-    // Mounted on /dashboard. Express strips '/dashboard', so req.url becomes '/'.
-    // We set target to include '/dashboard' so it reconstructs the correct upstream URL.
     const dashboardProxy = createProxyMiddleware({
         target: `${backendUrl}/dashboard`,
         changeOrigin: true,
         logger: console,
-        pathRewrite: { '^/$': '' } // Remove potential double slash if any, but mainly purely rely on target
+        pathRewrite: { '^/$': '' }
     });
 
     // 2. Audit API Proxy
-    // Mounted on /api/v1/audit.
     const auditProxy = createProxyMiddleware({
         target: `${backendUrl}/api/v1/audit`,
         changeOrigin: true,
@@ -46,6 +77,6 @@ export = (app: Probot, { getRouter }: any) => {
         pathRewrite: { '^/$': '' }
     });
 
-    router.use('/dashboard', dashboardProxy);
-    router.use('/api/v1/audit', auditProxy);
+    routerProxy.use('/dashboard', dashboardProxy);
+    routerProxy.use('/api/v1/audit', auditProxy);
 };
