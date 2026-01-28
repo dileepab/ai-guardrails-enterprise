@@ -22,7 +22,7 @@ SETUP_SCRIPT_TEMPLATE = r"""#!/bin/bash
 
 # Configuration
 # Dynamic API URL injected by server
-API_URL="{api_url}"
+API_URL="${api_url}"
 
 # Define paths
 HOOK_DIR=".git/hooks"
@@ -141,6 +141,8 @@ echo "✅ Installed successfully!"
 echo "   Configured API: $API_URL"
 """
 
+from string import Template
+
 @app.get("/setup-hooks.sh", response_class=Response)
 async def get_hooks_script(request: Request):
     # Dynamically inject the correct API URL based on where the request came from
@@ -148,7 +150,8 @@ async def get_hooks_script(request: Request):
     base_url = str(request.base_url).rstrip("/")
     api_url = f"{base_url}/api/v1/scan"
     
-    script_content = SETUP_SCRIPT_TEMPLATE.format(api_url=api_url)
+    # Use string.Template to avoid conflicts with {} in the script
+    script_content = Template(SETUP_SCRIPT_TEMPLATE).substitute(api_url=api_url)
     return Response(content=script_content, media_type="text/x-shellscript")
 
 @app.get("/health")
