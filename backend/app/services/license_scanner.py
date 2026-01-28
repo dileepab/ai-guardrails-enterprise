@@ -9,7 +9,13 @@ class LicenseScanner:
         "ffmpeg": "LGPL/GPL",
         "linux": "GPL-2.0",
         "bash": "GPL-3.0",
-        "ghostscript": "AGPL"
+        "ghostscript": "AGPL",
+        "itext": "AGPL",
+        "sharp": "LGPL",
+        "highcharts": "Prosper/Commercial",
+        "mysqldb": "GPL",
+        "sleepycat": "Sleepycat",
+        "json-c": "Public Domain/MIT" # Example of permissive
     }
 
     @staticmethod
