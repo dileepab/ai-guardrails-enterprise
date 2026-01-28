@@ -74,7 +74,7 @@ def read_file_content(filepath):
         return ""
 
 def main():
-    print("🛡️  AI Guardrails: Local Scan...")
+    print("🛡️  AI Guardrails: Local Scan (v2.1 - Enhanced Output)...")
     
     files = get_staged_files()
     if not files:
