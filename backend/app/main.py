@@ -110,7 +110,7 @@ def main():
         res_body = response.read()
         data = json.loads(res_body)
         
-    if not data.get("succeeded", True):
+        if not data.get("succeeded", True):
             # ANSI Colors
             RED = "\033[91m"
             GREEN = "\033[92m"
