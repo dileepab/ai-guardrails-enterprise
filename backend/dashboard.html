@@ -232,163 +232,164 @@
     </div>
     </div>
 
-    let currentData = null;
-    let catChart = null;
-    let sevChart = null;
-    let scanChart = null;
+    <script>
+        let currentData = null;
+        let catChart = null;
+        let sevChart = null;
+        let scanChart = null;
 
-    // Init Install Command dynamic host
-    document.addEventListener("DOMContentLoaded", () => {
-    const host = window.location.origin;
-    const cmd = `curl -sL ${host}/setup-hooks.sh | bash`;
-    document.getElementById("installCmd").innerText = cmd;
-    });
+        // Init Install Command dynamic host
+        document.addEventListener("DOMContentLoaded", () => {
+            const host = window.location.origin;
+            const cmd = `curl -sL ${host}/setup-hooks.sh | bash`;
+            document.getElementById("installCmd").innerText = cmd;
+        });
 
-    function copyInstall() {
-    const text = document.getElementById("installCmd").innerText;
-    navigator.clipboard.writeText(text);
-    alert("Command copied to clipboard!");
-    }
+        function copyInstall() {
+            const text = document.getElementById("installCmd").innerText;
+            navigator.clipboard.writeText(text);
+            alert("Command copied to clipboard!");
+        }
 
-    async function fetchStats(days = 30) {
-    try {
-    const response = await fetch(`/api/v1/audit/stats?days=${days}`);
-    const data = await response.json();
-    currentData = data;
-    renderDashboard(data);
-    } catch (error) {
-    console.error("Error fetching stats:", error);
-    document.getElementById('riskyFilesList').innerHTML = "<li>Error loading data.</li>";
-    }
-    }
+        async function fetchStats(days = 30) {
+            try {
+                const response = await fetch(`/api/v1/audit/stats?days=${days}`);
+                const data = await response.json();
+                currentData = data;
+                renderDashboard(data);
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+                document.getElementById('riskyFilesList').innerHTML = "<li>Error loading data.</li>";
+            }
+        }
 
-    function updateFilter() {
-    const days = document.getElementById('timeFilter').value;
-    fetchStats(days);
-    }
+        function updateFilter() {
+            const days = document.getElementById('timeFilter').value;
+            fetchStats(days);
+        }
 
-    function renderDashboard(data) {
-    // Destroy old charts if exist
-    if (catChart) catChart.destroy();
-    if (sevChart) sevChart.destroy();
-    if (scanChart) scanChart.destroy();
+        function renderDashboard(data) {
+            // Destroy old charts if exist
+            if (catChart) catChart.destroy();
+            if (sevChart) sevChart.destroy();
+            if (scanChart) scanChart.destroy();
 
-    // Common Chart Options
-    const commonOptions = {
-    plugins: {
-    legend: {
-    position: 'bottom',
-    labels: {
-    color: '#e2e8f0', // Light slate text
-    padding: 20,
-    font: { size: 12 }
-    }
-    }
-    },
-    maintainAspectRatio: false
-    };
+            // Common Chart Options
+            const commonOptions = {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e2e8f0', // Light slate text
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                maintainAspectRatio: false
+            };
 
-    // Render Category Chart
-    catChart = new Chart(document.getElementById('categoryChart'), {
-    type: 'doughnut',
-    data: {
-    labels: Object.keys(data.categories),
-    datasets: [{
-    data: Object.values(data.categories),
-    backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#22c55e', '#8b5cf6'],
-    borderWidth: 0
-    }]
-    },
-    options: commonOptions
-    });
+            // Render Category Chart
+            catChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data.categories),
+                    datasets: [{
+                        data: Object.values(data.categories),
+                        backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#22c55e', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: commonOptions
+            });
 
-    // Render Severity Chart
-    sevChart = new Chart(document.getElementById('severityChart'), {
-    type: 'pie',
-    data: {
-    labels: Object.keys(data.severities),
-    datasets: [{
-    data: Object.values(data.severities),
-    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
-    borderWidth: 0
-    }]
-    },
-    options: commonOptions
-    });
+            // Render Severity Chart
+            sevChart = new Chart(document.getElementById('severityChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(data.severities),
+                    datasets: [{
+                        data: Object.values(data.severities),
+                        backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: commonOptions
+            });
 
-    // Render Scan Chart
-    scanChart = new Chart(document.getElementById('scanChart'), {
-    type: 'bar',
-    data: {
-    labels: ['Total Scans', 'Violations Found'],
-    datasets: [{
-    label: 'Count',
-    data: [data.scans, data.violations],
-    backgroundColor: ['#22c55e', '#ef4444']
-    }]
-    },
-    options: { plugins: { legend: { display: false } } }
-    });
+            // Render Scan Chart
+            scanChart = new Chart(document.getElementById('scanChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Total Scans', 'Violations Found'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [data.scans, data.violations],
+                        backgroundColor: ['#22c55e', '#ef4444']
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
 
-    // Render Risky Files
-    const list = document.getElementById('riskyFilesList');
-    list.innerHTML = "";
-    if (data.riskyFiles && Object.keys(data.riskyFiles).length > 0) {
-    Object.entries(data.riskyFiles).forEach(([name, count]) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span style="color:#ef4444; font-weight:bold;">${count}</span> flags in <code>${name}</code>`;
-    li.style.borderBottom = "1px solid #334155";
-    li.style.padding = "8px 0";
-    list.appendChild(li);
-    });
-    } else {
-    list.innerHTML = "<li>No data yet.</li>";
-    }
+            // Render Risky Files
+            const list = document.getElementById('riskyFilesList');
+            list.innerHTML = "";
+            if (data.riskyFiles && Object.keys(data.riskyFiles).length > 0) {
+                Object.entries(data.riskyFiles).forEach(([name, count]) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span style="color:#ef4444; font-weight:bold;">${count}</span> flags in <code>${name}</code>`;
+                    li.style.borderBottom = "1px solid #334155";
+                    li.style.padding = "8px 0";
+                    list.appendChild(li);
+                });
+            } else {
+                list.innerHTML = "<li>No data yet.</li>";
+            }
 
-    // Render Table
-    const tbody = document.querySelector('#violationsTable tbody');
-    if (data.recent && data.recent.length > 0) {
-    tbody.innerHTML = "";
-    data.recent.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
+            // Render Table
+            const tbody = document.querySelector('#violationsTable tbody');
+            if (data.recent && data.recent.length > 0) {
+                tbody.innerHTML = "";
+                data.recent.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
     <td>${row.time}</td>
     <td><code>${row.file}</code></td>
     <td>${row.id}</td>
     <td>${row.cat}</td>
     <td><span class="badge ${row.sev}">${row.sev}</span></td>
     `;
-    tbody.appendChild(tr);
-    });
-    } else {
-    tbody.innerHTML = "<tr>
-        <td colspan='5' style='text-align:center; color:#64748b;'>No violations found in this period.</td>
-    </tr>";
-    }
-    }
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = "<tr>
+                    < td colspan = '5' style = 'text-align:center; color:#64748b;' > No violations found in this period.</td >
+    </tr > ";
+            }
+        }
 
-    function exportCSV() {
-    if (!currentData || !currentData.recent) return;
+        function exportCSV() {
+            if (!currentData || !currentData.recent) return;
 
-    const rows = [
-    ["Timestamp", "File", "Policy ID", "Category", "Severity"],
-    ...currentData.recent.map(r => [r.time, r.file, r.id, r.cat, r.sev])
-    ];
+            const rows = [
+                ["Timestamp", "File", "Policy ID", "Category", "Severity"],
+                ...currentData.recent.map(r => [r.time, r.file, r.id, r.cat, r.sev])
+            ];
 
-    let csvContent = "data:text/csv;charset=utf-8,"
-    + rows.map(e => e.join(",")).join("\n");
+            let csvContent = "data:text/csv;charset=utf-8,"
+                + rows.map(e => e.join(",")).join("\n");
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "compliance_report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    }
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "compliance_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
-    // Init
-    fetchStats();
+        // Init
+        fetchStats();
     </script>
 </body>
 
