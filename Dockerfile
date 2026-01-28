@@ -26,23 +26,21 @@ RUN npm ci
 WORKDIR /app
 COPY backend ./backend
 COPY github-app ./github-app
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.template.conf
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Build GitHub App (TypeScript -> JS)
 WORKDIR /app/github-app
 RUN npm run build
 
-# Expose ports (Render only accepts one, usually 3000 for the app)
-# Expose configured port (Railway will override PORT, we just need to let it)
-# EXPOSE 3000 - Removed to avoid confusing Railway routing
-
-# Expose configured port (Railway will override PORT, we just need to let it)
+# Expose ports
 EXPOSE 8000
 
-# Set Default Env Vars (can be overridden)
+# Set Default Env Vars
 ENV PORT=8000
 ENV HOST=0.0.0.0
 ENV BACKEND_URL=http://127.0.0.1:8000/api/v1
 
-# Start Supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start via script to handle PORT injection
+CMD ["/start.sh"]
