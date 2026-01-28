@@ -11,3 +11,4 @@ bandit==1.7.6
 tenacity
 jinja2
 python-multipart
+gunicorn
