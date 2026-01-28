@@ -151,7 +151,8 @@ async def get_hooks_script(request: Request):
     api_url = f"{base_url}/api/v1/scan"
     
     # Use string.Template to avoid conflicts with {} in the script
-    script_content = Template(SETUP_SCRIPT_TEMPLATE).substitute(api_url=api_url)
+    # Use safe_substitute to ignore bash variables like $HOOK_DIR that are NOT in the dict
+    script_content = Template(SETUP_SCRIPT_TEMPLATE).safe_substitute(api_url=api_url)
     return Response(content=script_content, media_type="text/x-shellscript")
 
 @app.get("/health")
