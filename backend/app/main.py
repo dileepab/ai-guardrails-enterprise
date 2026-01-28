@@ -180,8 +180,9 @@ from string import Template
 
 try:
     import httpx
-    # Create a robust HTTP client for proxying
-    client = httpx.AsyncClient(base_url="http://127.0.0.1:3000")
+    import traceback
+    # Create a robust HTTP client for proxying with extended timeout (60s) for slow scans
+    client = httpx.AsyncClient(base_url="http://127.0.0.1:3000", timeout=60.0)
     HTTPX_AVAILABLE = True
 except ImportError:
     print("⚠️  HTTPX not found. Webhook proxy disabled.")
@@ -220,7 +221,8 @@ async def proxy_webhooks(request: Request):
         )
     except Exception as e:
         print(f"Error proxying webhook: {e}")
-        return Response(content="Internal Proxy Error", status_code=500)
+        traceback.print_exc()
+        return Response(content=f"Internal Proxy Error: {str(e)}", status_code=500)
 
 @app.get("/setup-hooks.sh", response_class=Response)
 async def get_hooks_script(request: Request):
