@@ -5,6 +5,9 @@ from pathlib import Path
 from app.api.routes import router as api_router
 from app.core.config import settings
 from app.api import audit
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -185,7 +188,7 @@ try:
     client = httpx.AsyncClient(base_url="http://127.0.0.1:3000", timeout=60.0)
     HTTPX_AVAILABLE = True
 except ImportError:
-    print("⚠️  HTTPX not found. Webhook proxy disabled.")
+    logger.warning("⚠️  HTTPX not found. Webhook proxy disabled.")
     client = None
     HTTPX_AVAILABLE = False
 
@@ -220,7 +223,7 @@ async def proxy_webhooks(request: Request):
             background=BackgroundTask(rp_resp.aclose),
         )
     except Exception as e:
-        print(f"Error proxying webhook: {e}")
+        logger.error(f"Error proxying webhook: {e}")
         traceback.print_exc()
         return Response(content=f"Internal Proxy Error: {str(e)}", status_code=500)
 
@@ -289,7 +292,7 @@ async def admin_override(request: Request):
                 "reason": reason
             })
             if res.status_code != 200:
-                print(f"Node App Override failed: {res.text}")
+                logger.error(f"Node App Override failed: {res.text}")
                 return Response(content=f"Upstream Error: {res.text}", status_code=500)
         else:
             return Response(content="Internal Communication Error (HTTPX missing)", status_code=500)
@@ -297,5 +300,5 @@ async def admin_override(request: Request):
         return {"status": "overridden"}
 
     except Exception as e:
-        print(f"Override Error: {e}")
+        logger.error(f"Override Error: {e}")
         return Response(content=str(e), status_code=500)

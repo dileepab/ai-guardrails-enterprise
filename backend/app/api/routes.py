@@ -22,7 +22,8 @@ async def scan_code(request: ScanRequest):
         sha = request.commit_sha
         
         if is_commit_overridden(repo, sha):
-            print(f"🔒 Override detected for {repo}@{sha}. Forcing Success.")
+            import logging
+            logging.getLogger("app.api.routes").info(f"🔒 Override detected for {repo}@{sha}. Forcing Success.")
             response.succeeded = True
             response.violations = [] # Clear violations so it doesn't block
             

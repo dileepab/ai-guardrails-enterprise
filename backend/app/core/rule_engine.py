@@ -14,7 +14,8 @@ class RuleEngine:
 
     def _load_rules(self, path: str):
         if not os.path.exists(path):
-             print(f"Warning: Rules file not found at {path}")
+             import logging
+             logging.getLogger(__name__).warning(f"Warning: Rules file not found at {path}")
              return
 
         with open(path, 'r') as f:
@@ -47,7 +48,8 @@ class RuleEngine:
                 return current_rules
 
             except Exception as e:
-                print(f"Error parsing override config: {e}")
+                import logging
+                logging.getLogger(__name__).error(f"Error parsing override config: {e}")
                 return self.rules
                 
         return current_rules

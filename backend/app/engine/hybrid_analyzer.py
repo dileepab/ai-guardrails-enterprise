@@ -8,7 +8,12 @@ import asyncio
 import random
 # Using a global semaphore ensures that even if 5 different webhooks hit us at once,
 # they ALL queue up behind this single lock.
+# Using a global semaphore ensures that even if 5 different webhooks hit us at once,
+# they ALL queue up behind this single lock.
 _GLOBAL_SEMAPHORE = asyncio.Semaphore(1) 
+
+import logging
+logger = logging.getLogger(__name__) 
 
 class HybridAnalyzer:
     async def analyze(self, request: ScanRequest) -> ScanResponse:
@@ -39,7 +44,7 @@ class HybridAnalyzer:
                     ai_violations = await llm_service.analyze_diff(filename, content, static_violations)
                     file_violations.extend(ai_violations)
                 except Exception as e:
-                    print(f"⚠️ LLM Analysis Failed for {filename}: {e}")
+                    logger.warning(f"⚠️ LLM Analysis Failed for {filename}: {e}")
                     # Add a warning violation so user knows AI check was skipped
                     file_violations.append(Violation(
                         rule_id="SYS-LLM-FAIL",

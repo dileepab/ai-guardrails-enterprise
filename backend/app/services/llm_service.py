@@ -1,5 +1,8 @@
-import google.genai as genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
+import logging
+
+logger = logging.getLogger(__name__)
 import openai
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from app.core.config import settings
@@ -76,7 +79,7 @@ Return your findings in valid JSON format ONLY (under "findings" key):
                 ))
             return violations
         except Exception as e:
-            print(f"LLM Parse Error: {e}")
+            logger.error(f"LLM Parse Error: {e}")
             return []
 
     def _mock_analysis(self, filename: str, content: str) -> List[Violation]:
@@ -148,9 +151,9 @@ class GeminiClient(BaseLLMClient):
         except Exception as e:
             # Check for RetryError structure from google.api_core
             if "RetryError" in str(type(e)):
-                 print(f"Gemini Retry failed. Underlying cause: {getattr(e, 'cause', e)}")
-            else:
-                 print(f"Gemini Error: {e}")
+                 logger.error(f"Gemini Retry failed. Underlying cause: {getattr(e, 'cause', e)}")
+                 # Continue to try fallback
+            logger.error(f"Gemini Error: {e}")
             return []
 
 # --- OpenAI Implementation ---
@@ -184,14 +187,14 @@ class OpenAIClient(BaseLLMClient):
             content = response.choices[0].message.content
             return self._parse_response(content, filename)
         except Exception as e:
-            print(f"OpenAI Error: {e}")
+            logger.error(f"OpenAI Error: {e}")
             return []
 
 # --- Factory / Singleton Wrapper ---
 class LLMServiceWrapper:
     def __init__(self):
         self.provider = settings.LLM_PROVIDER.lower()
-        print(f"Initializing LLM Service with provider: {self.provider}")
+        logger.info(f"Initializing LLM Service with provider: {self.provider}")
         
         if self.provider == "openai":
             self.client = OpenAIClient()
