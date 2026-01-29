@@ -41,8 +41,8 @@ export = (app: Probot, { getRouter }: any) => {
                 sha: commit_sha,
                 state: "success",
                 description: `Admin Override: ${reason || "Manual Approval"}`,
-                context: "ai-guardrails", // Must match the context used by the bot
-                target_url: `${process.env.BACKEND_URL || "https://ai-guardrails-enterprise-production.up.railway.app"}/dashboard`
+                context: "AI Guardrails", // Must match the context used by the bot (Case Sensitive!)
+                target_url: `${process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "http://localhost:8000")}/dashboard`
             });
 
             res.json({ status: "ok", message: "Override applied" });
