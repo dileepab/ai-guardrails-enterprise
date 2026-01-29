@@ -96,6 +96,10 @@ async def get_audit_stats(days: int = 30):
 
     # Post-processing
     stats["riskyFiles"] = dict(sorted(stats["riskyFiles"].items(), key=lambda x: x[1], reverse=True)[:5])
-    stats["recent"] = stats["recent"][:10] # Top 10 flattened violations
+    
+    # Return more history (User requested >10). 
+    # Can implementation pagination later, but 100 is safe for now.
+    limit = 100
+    stats["recent"] = stats["recent"][:limit] 
 
     return stats
