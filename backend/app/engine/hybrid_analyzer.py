@@ -28,8 +28,20 @@ class HybridAnalyzer:
             # 2. AI Analysis (Needs static context, so must run after static)
             # Only run AI analysis on code files, skip dependency configs to save tokens/time
             if not filename.endswith(("package.json", "requirements.txt", "pom.xml")):
-                ai_violations = await llm_service.analyze_diff(filename, content, static_violations)
-                file_violations.extend(ai_violations)
+                try:
+                    ai_violations = await llm_service.analyze_diff(filename, content, static_violations)
+                    file_violations.extend(ai_violations)
+                except Exception as e:
+                    print(f"⚠️ LLM Analysis Failed for {filename}: {e}")
+                    # Add a warning violation so user knows AI check was skipped
+                    file_violations.append(Violation(
+                        id="SYS-LLM-FAIL",
+                        category="SYSTEM",
+                        severity="WARNING",
+                        message=f"AI Analysis unavailable: {str(e)}",
+                        file=filename,
+                        line=1
+                    ))
             
             return file_violations
 
