@@ -46,12 +46,15 @@ class HybridAnalyzer:
             return file_violations
 
         # Run all files in parallel
-        # Run all files in parallel, but with concurrency limit to prevent 429s
+        # Run all files in parallel, but with concurrency limit to prevent 429s (Free Tier Resilience)
         import asyncio
-        semaphore = asyncio.Semaphore(3) # Max 3 concurrent LLM requests
+        import random
+        semaphore = asyncio.Semaphore(1) # STRICT SEQUENTIAL for Free Tier
         
         async def _bounded_analyze(file):
             async with semaphore:
+                # Add delay to respect RPM limits (e.g. 15 RPM = 4s/req, but we can burst a little)
+                await asyncio.sleep(2) 
                 return await _analyze_file(file)
 
         results = await asyncio.gather(*[_bounded_analyze(f) for f in request.files])
