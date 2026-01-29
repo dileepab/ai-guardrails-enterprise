@@ -87,6 +87,11 @@ async def get_audit_stats(days: int = 30):
         except json.JSONDecodeError:
             pass
 
+    # 3. Fetch Overridden Commits (Persistence for Dashboard UI)
+    cursor.execute("SELECT DISTINCT commit_sha FROM audit_overrides")
+    overridden_shas = [r[0] for r in cursor.fetchall()]
+    stats["overridden_shas"] = overridden_shas
+
     conn.close()
 
     # Post-processing

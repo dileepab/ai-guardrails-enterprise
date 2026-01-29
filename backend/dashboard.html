@@ -406,9 +406,10 @@
             if (data.recent && data.recent.length > 0) {
                 data.recent.forEach(row => {
                     // Identify candidates for override (Blocking & has Metadata)
-                    // Note: We don't know if they are ALREADY overridden from backend data here, 
-                    // but usually recent blocks need attention.
-                    if (row.sev === 'BLOCKING' && row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A") {
+                    // Check if ALREADY overridden in backend
+                    const isOverridden = data.overridden_shas && data.overridden_shas.includes(row.commit_sha);
+
+                    if (!isOverridden && row.sev === 'BLOCKING' && row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A") {
                         const key = row.commit_sha;
                         if (!pendingMap[key]) {
                             pendingMap[key] = {
@@ -465,13 +466,22 @@
             if (data.recent && data.recent.length > 0) {
                 tbody.innerHTML = "";
                 data.recent.forEach(row => {
+
+                    // Enhancement: Show status in log table too
+                    const isOverridden = data.overridden_shas && data.overridden_shas.includes(row.commit_sha);
+                    let statusBadge = `<span class="badge ${row.sev}">${row.sev}</span>`;
+
+                    if (row.sev === 'BLOCKING' && isOverridden) {
+                        statusBadge += ` <span style="color:#22c55e; font-size:0.8em; margin-left:5px;">(Approved)</span>`;
+                    }
+
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
     <td>${row.time}</td>
     <td><code>${row.file}</code></td>
     <td>${row.id}</td>
     <td>${row.cat}</td>
-    <td><span class="badge ${row.sev}">${row.sev}</span></td>
+    <td>${statusBadge}</td>
     `;
                     // Action column removed from table
                     tbody.appendChild(tr);
