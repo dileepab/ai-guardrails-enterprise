@@ -108,9 +108,33 @@ class GeminiClient(BaseLLMClient):
         wait=wait_exponential(multiplier=1, min=2, max=60)
     )
     async def _call_gemini(self, prompt: str):
+        # Configure Safety Settings to ALLOW dangerous content analysis
+        # (This is a security tool, so we EXPECT to see dangerous code)
+        safety_config = [
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE
+            ),
+        ]
+
         return await self.client.aio.models.generate_content(
             model='gemini-1.5-flash',
-            contents=prompt
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                safety_settings=safety_config
+            )
         )
 
     async def analyze_diff(self, filename: str, content: str, static_violations: List[Violation]) -> List[Violation]:
