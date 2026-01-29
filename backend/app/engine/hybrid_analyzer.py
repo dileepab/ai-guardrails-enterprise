@@ -76,7 +76,9 @@ class HybridAnalyzer:
                 pass
 
         # Calculate Success
-        has_blocking_violations = any(v.severity == "BLOCKING" for v in violations)
+        # Block on BLOCKING, CRITICAL, or HIGH severity
+        blocking_severities = {"BLOCKING", "CRITICAL", "HIGH"}
+        has_blocking_violations = any(v.severity in blocking_severities for v in violations)
         
         if enforcement_mode == "advisory":
             succeeded = True
