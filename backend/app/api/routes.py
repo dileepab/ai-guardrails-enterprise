@@ -17,9 +17,9 @@ async def scan_code(request: ScanRequest):
         response = await analyzer.analyze(request)
         
         # Check for Admin Override (Persistence)
-        # Extract repo/sha from metadata if available (assuming client sends them)
-        repo = request.metadata.get("repo_full_name")
-        sha = request.metadata.get("commit_sha")
+        # Extract repo/sha directly from request model (no metadata dict)
+        repo = request.repo_full_name
+        sha = request.commit_sha
         
         if is_commit_overridden(repo, sha):
             print(f"🔒 Override detected for {repo}@{sha}. Forcing Success.")
@@ -29,4 +29,6 @@ async def scan_code(request: ScanRequest):
         audit_logger.log_scan(request, response)
         return response
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
