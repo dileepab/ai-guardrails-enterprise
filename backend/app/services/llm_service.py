@@ -145,9 +145,6 @@ class GeminiClient(BaseLLMClient):
         try:
             response = await self._call_gemini(prompt)
             return self._parse_response(response.text, filename)
-        except genai.types.GenerationResponseError as e:
-            print(f"Gemini Blocked Response: {e}")
-            return []
         except Exception as e:
             # Check for RetryError structure from google.api_core
             if "RetryError" in str(type(e)):

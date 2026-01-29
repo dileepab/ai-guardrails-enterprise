@@ -42,12 +42,12 @@ class HybridAnalyzer:
                     print(f"⚠️ LLM Analysis Failed for {filename}: {e}")
                     # Add a warning violation so user knows AI check was skipped
                     file_violations.append(Violation(
-                        id="SYS-LLM-FAIL",
+                        rule_id="SYS-LLM-FAIL",
                         category="SYSTEM",
                         severity="WARNING",
                         message=f"AI Analysis unavailable: {str(e)}",
-                        file=filename,
-                        line=1
+                        file_path=filename,
+                        line_number=1
                     ))
             
             return file_violations
