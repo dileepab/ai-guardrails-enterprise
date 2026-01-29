@@ -35,8 +35,11 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
 
     const filesToScan = [];
 
+    context.log.info(`Found ${filesResponse.data.length} changed files.`);
+
     // Filter out removed files and fetch content for modified/added files
     for (const f of filesResponse.data) {
+        context.log.info(`File: ${f.filename}, Status: ${f.status}`);
         if (f.status === 'removed') continue;
 
         try {
@@ -58,8 +61,9 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
                 content: content,
                 patch: f.patch, // Keep patch for context if needed, but scan 'content'
             });
-        } catch (error) {
-            context.log.warn(`Failed to fetch content for ${f.filename}, skipping.`);
+            context.log.info(`Successfully fetched content for ${f.filename}`);
+        } catch (error: any) {
+            context.log.warn(`Failed to fetch content for ${f.filename}: ${error.message}`);
         }
     }
 
@@ -150,14 +154,20 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
         const scanResult = response.data;
 
         // 3. Post Feedback & Status
-        await context.octokit.repos.createCommitStatus({
-            owner: repo.owner,
-            repo: repo.repo,
-            sha: pr.head.sha,
-            state: scanResult.succeeded ? "success" : "failure",
-            context: "AI Guardrails",
-            description: scanResult.summary.substring(0, 140) // GitHub limit
-        });
+        context.log.info(`Updating commit status to: ${scanResult.succeeded ? "success" : "failure"}`);
+        try {
+            await context.octokit.repos.createCommitStatus({
+                owner: repo.owner,
+                repo: repo.repo,
+                sha: pr.head.sha,
+                state: scanResult.succeeded ? "success" : "failure",
+                context: "AI Guardrails",
+                description: scanResult.summary.substring(0, 140) // GitHub limit
+            });
+            context.log.info("Successfully updated commit status.");
+        } catch (e: any) {
+            context.log.error(`Failed to update commit status: ${e.message}`);
+        }
 
         if (scanResult.violations.length > 0) {
 

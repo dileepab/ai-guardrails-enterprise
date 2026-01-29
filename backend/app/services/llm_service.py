@@ -130,7 +130,7 @@ class GeminiClient(BaseLLMClient):
         ]
 
         return await self.client.aio.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 safety_settings=safety_config
