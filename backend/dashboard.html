@@ -259,7 +259,7 @@
             }
         }
 
-        async function overrideStatus(repo, commit_sha) {
+        async function overrideStatus(btnElement, repo, commit_sha) {
             if (!repo || repo === "N/A" || !commit_sha || commit_sha === "N/A") {
                 alert("Cannot override: Missing Repository or Commit SHA metadata.");
                 return;
@@ -267,6 +267,11 @@
 
             const reason = prompt("Enter reason for override (Audit Log):", "Manual Admin Approval");
             if (!reason) return;
+
+            // Optimistic UI update
+            const originalText = btnElement.innerText;
+            btnElement.innerText = "⏳ Processing...";
+            btnElement.disabled = true;
 
             try {
                 const response = await fetch("/api/v1/override", {
@@ -277,13 +282,23 @@
 
                 if (response.ok) {
                     alert("✅ Override Successful! GitHub Status updated to GREEN.");
-                    fetchStats(); // Refresh UI
+                    // Update Button State Permanently for this session
+                    btnElement.innerText = "✅ Approved";
+                    btnElement.style.color = "#94a3b8";
+                    btnElement.style.borderColor = "#94a3b8";
+                    btnElement.style.cursor = "not-allowed";
+                    // Note: We do NOT call fetchStats() here to avoid resetting the button state
                 } else {
                     const txt = await response.text();
                     alert(`❌ Override Failed: ${txt}`);
+                    // Revert UI on failure
+                    btnElement.innerText = originalText;
+                    btnElement.disabled = false;
                 }
             } catch (e) {
                 alert(`Error: ${e}`);
+                btnElement.innerText = originalText;
+                btnElement.disabled = false;
             }
         }
 
@@ -381,7 +396,7 @@
                     const canOverride = row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A";
 
                     const btnHtml = canOverride
-                        ? `<button onclick="overrideStatus('${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
+                        ? `<button onclick="overrideStatus(this, '${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
                         : `<span style="color:#64748b; font-size:0.75rem;">Local/No Context</span>`;
 
                     const tr = document.createElement('tr');
