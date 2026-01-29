@@ -409,7 +409,8 @@
                     // Check if ALREADY overridden in backend
                     const isOverridden = data.overridden_shas && data.overridden_shas.includes(row.commit_sha);
 
-                    if (!isOverridden && row.sev === 'BLOCKING' && row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A") {
+                    const blockingSevs = ['BLOCKING', 'CRITICAL', 'HIGH'];
+                    if (!isOverridden && blockingSevs.includes(row.sev) && row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A") {
                         const key = row.commit_sha;
                         if (!pendingMap[key]) {
                             pendingMap[key] = {
