@@ -282,12 +282,16 @@
 
                 if (response.ok) {
                     alert("✅ Override Successful! GitHub Status updated to GREEN.");
-                    // Update Button State Permanently for this session
-                    btnElement.innerText = "✅ Approved";
-                    btnElement.style.color = "#94a3b8";
-                    btnElement.style.borderColor = "#94a3b8";
-                    btnElement.style.cursor = "not-allowed";
-                    // Note: We do NOT call fetchStats() here to avoid resetting the button state
+
+                    // Update ALL buttons for this Commit SHA (since Override is Global for the Commit)
+                    const allButtons = document.querySelectorAll(`button[data-sha='${commit_sha}']`);
+                    allButtons.forEach(btn => {
+                        btn.innerText = "✅ Approved";
+                        btn.style.color = "#94a3b8";
+                        btn.style.borderColor = "#94a3b8";
+                        btn.style.cursor = "not-allowed";
+                        btn.disabled = true;
+                    });
                 } else {
                     const txt = await response.text();
                     alert(`❌ Override Failed: ${txt}`);
@@ -396,7 +400,7 @@
                     const canOverride = row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A";
 
                     const btnHtml = canOverride
-                        ? `<button onclick="overrideStatus(this, '${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
+                        ? `<button data-sha="${row.commit_sha}" onclick="overrideStatus(this, '${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
                         : `<span style="color:#64748b; font-size:0.75rem;">Local/No Context</span>`;
 
                     const tr = document.createElement('tr');
