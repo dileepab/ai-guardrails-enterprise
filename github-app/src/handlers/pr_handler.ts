@@ -41,6 +41,15 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
 
     if (filesToScan.length === 0) {
         context.log.info("No files to scan.");
+        // Post Success Status immediately so PR isn't stuck in "Pending"
+        await context.octokit.repos.createCommitStatus({
+            owner: repo.owner,
+            repo: repo.repo,
+            sha: pr.head.sha,
+            state: "success",
+            context: "AI Guardrails",
+            description: "No relevant files changed. Scan skipped."
+        });
         return;
     }
 
