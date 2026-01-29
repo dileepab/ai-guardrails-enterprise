@@ -141,6 +141,7 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
             const reviewComments = comments.slice(0, 10);
 
             try {
+                // Attempt 1: Review with Inline Comments
                 await context.octokit.pulls.createReview({
                     owner: repo.owner,
                     repo: repo.repo,
@@ -150,17 +151,21 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
                     comments: reviewComments
                 });
             } catch (reviewError: any) {
-                context.log.warn(`Failed to post review comments (likely line mismatch): ${reviewError.message}`);
-                // Fallback: Post as a general comment with details
+                context.log.info(`Inline review failed (likely line mismatch), falling back to summary review: ${reviewError.message}`);
+
+                // Detailed Body for the fallback review
                 const violationDetails = scanResult.violations.map(v =>
                     `- **[${v.severity}] ${v.rule_id}** (${v.file_path}:${v.line_number}): ${v.message}`
                 ).join("\n");
 
-                await context.octokit.issues.createComment({
+                // Attempt 2: Review WITHOUT Inline Comments (Body only)
+                // This ensures we still BLOCK the PR (Request Changes) if needed
+                await context.octokit.pulls.createReview({
                     owner: repo.owner,
                     repo: repo.repo,
-                    issue_number: pr.number,
-                    body: `## Guardrails Scan Results\n\n**Mode**: ${scanResult.enforcement_mode}\n\n${scanResult.summary}\n\n### 🔍 Violation Details\n${violationDetails}\n\n${scanResult.succeeded ? "✅ Checks Passed" : "❌ Blocking Issues Found"}`
+                    pull_number: pr.number,
+                    event: scanResult.succeeded ? "COMMENT" : "REQUEST_CHANGES",
+                    body: `## Guardrails Scan Results (Summary)\n(Inline comments failed due to line mismatch - violations listed below)\n\n**Mode**: ${scanResult.enforcement_mode}\n\n${scanResult.summary}\n\n### 🔍 Violation Details\n${violationDetails}\n\n${scanResult.succeeded ? "✅ Checks Passed" : "❌ Blocking Issues Found"}`
                 });
             }
         } else {
