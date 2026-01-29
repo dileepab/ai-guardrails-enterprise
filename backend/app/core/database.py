@@ -82,3 +82,17 @@ def log_audit_event(event_type: str, repo: str, commit_sha: str, pr_number: int 
     
     conn.commit()
     conn.close()
+
+def is_commit_overridden(repo: str, commit_sha: str) -> bool:
+    """
+    Checks if a specific commit has been manually overridden by an admin.
+    """
+    if not repo or not commit_sha:
+        return False
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT 1 FROM audit_overrides WHERE repo = ? AND commit_sha = ? LIMIT 1', (repo, commit_sha))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
