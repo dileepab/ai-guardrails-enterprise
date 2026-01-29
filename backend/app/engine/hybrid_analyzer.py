@@ -3,6 +3,13 @@ from app.models.scan import ScanRequest, ScanResponse, Violation
 from app.services.static_analysis import static_analyzer
 from app.services.llm_service import llm_service
 
+# Global Semaphore for STRICT Rate Limiting across ALL requests
+import asyncio
+import random
+# Using a global semaphore ensures that even if 5 different webhooks hit us at once,
+# they ALL queue up behind this single lock.
+_GLOBAL_SEMAPHORE = asyncio.Semaphore(1) 
+
 class HybridAnalyzer:
     async def analyze(self, request: ScanRequest) -> ScanResponse:
         violations: List[Violation] = []
@@ -45,14 +52,9 @@ class HybridAnalyzer:
             
             return file_violations
 
-        # Run all files in parallel
         # Run all files in parallel, but with concurrency limit to prevent 429s (Free Tier Resilience)
-        import asyncio
-        import random
-        semaphore = asyncio.Semaphore(1) # STRICT SEQUENTIAL for Free Tier
-        
         async def _bounded_analyze(file):
-            async with semaphore:
+            async with _GLOBAL_SEMAPHORE:
                 # Add delay to respect RPM limits (e.g. 15 RPM = 4s/req, but we can burst a little)
                 await asyncio.sleep(2) 
                 return await _analyze_file(file)
