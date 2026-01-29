@@ -46,8 +46,15 @@ class HybridAnalyzer:
             return file_violations
 
         # Run all files in parallel
+        # Run all files in parallel, but with concurrency limit to prevent 429s
         import asyncio
-        results = await asyncio.gather(*[_analyze_file(f) for f in request.files])
+        semaphore = asyncio.Semaphore(3) # Max 3 concurrent LLM requests
+        
+        async def _bounded_analyze(file):
+            async with semaphore:
+                return await _analyze_file(file)
+
+        results = await asyncio.gather(*[_bounded_analyze(f) for f in request.files])
         
         # Flatten results
         for res in results:
