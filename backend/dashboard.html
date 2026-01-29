@@ -206,6 +206,13 @@
             </div>
         </div>
 
+        <!-- Pending Approvals Section (Dynamic) -->
+        <div id="pending-approvals" class="card"
+            style="display:none; margin-bottom: 30px; border-left: 4px solid #f59e0b;">
+            <h2 style="color: #f59e0b; margin-bottom: 10px;">⚠️ Actions Required</h2>
+            <div id="pending-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
         <div class="card">
             <h2>Recent Violations Log</h2>
             <div class="table-container">
@@ -217,7 +224,7 @@
                             <th>Policy ID</th>
                             <th>Category</th>
                             <th>Severity</th>
-                            <th>Action</th>
+                            <!-- Action column removed in favor of Batch Actions above -->
                         </tr>
                     </thead>
                     <tbody>
@@ -389,20 +396,75 @@
                 list.innerHTML = "<li>No data yet.</li>";
             }
 
-            // Render Table
+            // --- PENDING APPROVALS LOGIC ---
+            const pendingContainer = document.getElementById('pending-approvals');
+            const pendingList = document.getElementById('pending-list');
+            pendingList.innerHTML = "";
+
+            const pendingMap = {};
+
+            if (data.recent && data.recent.length > 0) {
+                data.recent.forEach(row => {
+                    // Identify candidates for override (Blocking & has Metadata)
+                    // Note: We don't know if they are ALREADY overridden from backend data here, 
+                    // but usually recent blocks need attention.
+                    if (row.sev === 'BLOCKING' && row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A") {
+                        const key = row.commit_sha;
+                        if (!pendingMap[key]) {
+                            pendingMap[key] = {
+                                repo: row.repo,
+                                sha: row.commit_sha,
+                                count: 0,
+                                time: row.time
+                            };
+                        }
+                        pendingMap[key].count++;
+                    }
+                });
+            }
+
+            const pendingKeys = Object.keys(pendingMap);
+            if (pendingKeys.length > 0) {
+                pendingContainer.style.display = "block";
+                pendingKeys.forEach(sha => {
+                    const item = pendingMap[sha];
+                    const div = document.createElement('div');
+                    div.style.background = "#0f172a";
+                    div.style.padding = "15px";
+                    div.style.borderRadius = "8px";
+                    div.style.border = "1px solid #334155";
+                    div.style.display = "flex";
+                    div.style.justifyContent = "space-between";
+                    div.style.alignItems = "center";
+                    div.style.flexWrap = "wrap";
+                    div.style.gap = "10px";
+
+                    div.innerHTML = `
+                        <div>
+                            <div style="font-weight:bold; font-size:1.1rem; color: #f8fafc;">${item.repo}</div>
+                            <div style="color: #94a3b8; font-size:0.9rem; margin-top:4px;">
+                                Commit: <code style="color:#3b82f6;">${item.sha.substring(0, 7)}</code> 
+                                • <span style="color:#ef4444; font-weight:bold;">${item.count} Blocking Violations</span>
+                                • ${item.time}
+                            </div>
+                        </div>
+                        <button data-sha="${item.sha}" onclick="overrideStatus(this, '${item.repo}', '${item.sha}')" 
+                                style="padding:10px 20px; font-weight:bold; font-size:0.9rem; border:1px solid #22c55e; background:#22c55e; color:white; cursor:pointer; border-radius:6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            ✅ Approve Batch
+                        </button>
+                    `;
+                    pendingList.appendChild(div);
+                });
+            } else {
+                pendingContainer.style.display = "none";
+            }
+            // -------------------------------
+
+            // Render Table (Log View - Read Only)
             const tbody = document.querySelector('#violationsTable tbody');
             if (data.recent && data.recent.length > 0) {
                 tbody.innerHTML = "";
                 data.recent.forEach(row => {
-                    // Only show approve button if row has repo/sha and is NOT a local file scan
-                    // Local scans (file path only) don't have repo/sha context usually unless we fake it.
-                    // But blocking status overrides are for PRs.
-                    const canOverride = row.repo && row.repo !== "N/A" && row.commit_sha && row.commit_sha !== "N/A";
-
-                    const btnHtml = canOverride
-                        ? `<button data-sha="${row.commit_sha}" onclick="overrideStatus(this, '${row.repo}', '${row.commit_sha}')" style="padding:4px 8px; font-size:0.75rem; border:1px solid #22c55e; color:#22c55e; background:none; cursor:pointer; border-radius:4px;">✅ Approve</button>`
-                        : `<span style="color:#64748b; font-size:0.75rem;">Local/No Context</span>`;
-
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
     <td>${row.time}</td>
@@ -410,12 +472,12 @@
     <td>${row.id}</td>
     <td>${row.cat}</td>
     <td><span class="badge ${row.sev}">${row.sev}</span></td>
-    <td>${btnHtml}</td>
     `;
+                    // Action column removed from table
                     tbody.appendChild(tr);
                 });
             } else {
-                tbody.innerHTML = `<tr><td colspan='6' style='text-align:center; color:#64748b;'>No violations found in this period.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan='5' style='text-align:center; color:#64748b;'>No violations found in this period.</td></tr>`;
             }
         }
 
