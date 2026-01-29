@@ -33,11 +33,35 @@ export const handlePullRequest = async (context: Context<"pull_request">) => {
         pull_number: pr.number,
     });
 
-    const filesToScan = filesResponse.data.map((f) => ({
-        filename: f.filename,
-        content: f.patch || "", // In a real app, we might fetch full content if patch is insufficient
-        patch: f.patch,
-    }));
+    const filesToScan = [];
+
+    // Filter out removed files and fetch content for modified/added files
+    for (const f of filesResponse.data) {
+        if (f.status === 'removed') continue;
+
+        try {
+            const contentResponse = await context.octokit.repos.getContent({
+                owner: repo.owner,
+                repo: repo.repo,
+                path: f.filename,
+                ref: pr.head.sha
+            });
+
+            // Decode content (GitHub returns base64)
+            let content = "";
+            if ('content' in contentResponse.data && !Array.isArray(contentResponse.data)) {
+                content = Buffer.from(contentResponse.data.content, 'base64').toString();
+            }
+
+            filesToScan.push({
+                filename: f.filename,
+                content: content,
+                patch: f.patch, // Keep patch for context if needed, but scan 'content'
+            });
+        } catch (error) {
+            context.log.warn(`Failed to fetch content for ${f.filename}, skipping.`);
+        }
+    }
 
     if (filesToScan.length === 0) {
         context.log.info("No files to scan.");
