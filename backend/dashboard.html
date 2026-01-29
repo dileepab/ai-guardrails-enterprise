@@ -440,6 +440,24 @@
                     div.style.flexWrap = "wrap";
                     div.style.gap = "10px";
 
+                    let actionHtml = '';
+                    if (item.repo === 'local/repo') {
+                        actionHtml = `
+                            <div style="text-align:right;">
+                                <span style="display:inline-block; padding:10px 15px; color:#94a3b8; font-style:italic; font-size:0.9rem; border:1px dashed #475569; border-radius:6px;">
+                                    Local: Use <code>--no-verify</code>
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        actionHtml = `
+                            <button data-sha="${item.sha}" onclick="overrideStatus(this, '${item.repo}', '${item.sha}')" 
+                                    style="padding:10px 20px; font-weight:bold; font-size:0.9rem; border:1px solid #22c55e; background:#22c55e; color:white; cursor:pointer; border-radius:6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                ✅ Approve Batch
+                            </button>
+                        `;
+                    }
+
                     div.innerHTML = `
                         <div>
                             <div style="font-weight:bold; font-size:1.1rem; color: #f8fafc;">${item.repo}</div>
@@ -449,10 +467,7 @@
                                 • ${item.time}
                             </div>
                         </div>
-                        <button data-sha="${item.sha}" onclick="overrideStatus(this, '${item.repo}', '${item.sha}')" 
-                                style="padding:10px 20px; font-weight:bold; font-size:0.9rem; border:1px solid #22c55e; background:#22c55e; color:white; cursor:pointer; border-radius:6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                            ✅ Approve Batch
-                        </button>
+                        ${actionHtml}
                     `;
                     pendingList.appendChild(div);
                 });

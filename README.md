@@ -133,6 +133,20 @@ curl -sL https://your-deployment-url.com/setup-hooks.sh | bash
 
 Run this in your repository root. Now, every time you commit, your code is securely scanned by the Enterprise Guardrails Server. If it finds **BLOCKING** violations, the commit is rejected.
 
+### 💻 Local Development
+1.  **Install the Hook**:
+    ```bash
+    curl -sL <YOUR_RAILWAY_URL>/setup-hooks.sh | bash
+    ```
+2.  **Commit Code**:
+    The hook runs automatically. If it blocks you, fix the issues.
+3.  **Emergency Bypass**:
+    If you absolutely must commit despite violations (e.g., local testing), use `--no-verify`:
+    ```bash
+    git commit -m "Emergency fix" --no-verify
+    ```
+    *Note: This bypass is logged locally but strictly blocked on PRs.*
+
 ## Usage
 1.  Install the GitHub App on your repository.
 2.  Open a Pull Request.
