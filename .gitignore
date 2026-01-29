@@ -27,3 +27,5 @@ logs/
 backend/.env
 github-app/.env
 *.db
+*.db-shm
+*.db-wal
